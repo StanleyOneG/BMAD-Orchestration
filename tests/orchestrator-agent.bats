@@ -406,3 +406,118 @@ TEMPLATE_FILE=".bmad-orchestrator/templates/stage-prd.md"
 @test "Template 1.5-12: template contains {{mode_instructions}} placeholder" {
   grep -q '{{mode_instructions}}' "${TEMPLATE_FILE}"
 }
+
+# ──────────────────────────────────────────────
+# Story 2.1 Tests: Architecture Stage Template — stage-architecture.md (AC: #1)
+# ──────────────────────────────────────────────
+
+ARCH_TEMPLATE=".bmad-orchestrator/templates/stage-architecture.md"
+
+@test "Template 2.1-1: stage-architecture.md template file exists" {
+  [ -f "${ARCH_TEMPLATE}" ]
+}
+
+@test "Template 2.1-2: architecture template has valid YAML frontmatter with stage: architecture" {
+  head -1 "${ARCH_TEMPLATE}" | grep -q '^---$'
+  grep -q 'stage: architecture' "${ARCH_TEMPLATE}"
+}
+
+@test "Template 2.1-3: architecture template frontmatter contains agent: bmad-architect" {
+  grep -q 'agent: bmad-architect' "${ARCH_TEMPLATE}"
+}
+
+@test "Template 2.1-4: architecture template frontmatter contains command: CA" {
+  grep -q 'command: CA' "${ARCH_TEMPLATE}"
+}
+
+@test "Template 2.1-5: architecture template frontmatter contains requiredArtifacts with prd.md" {
+  grep -q 'requiredArtifacts' "${ARCH_TEMPLATE}"
+  grep -q 'prd\.md' "${ARCH_TEMPLATE}"
+}
+
+@test "Template 2.1-6: architecture template frontmatter contains producedArtifacts with architecture.md" {
+  grep -q 'producedArtifacts' "${ARCH_TEMPLATE}"
+  grep -q 'architecture\.md' "${ARCH_TEMPLATE}"
+}
+
+@test "Template 2.1-7: architecture template contains Context Injection section" {
+  grep -q '## Context Injection' "${ARCH_TEMPLATE}"
+}
+
+@test "Template 2.1-8: architecture template contains Stage Instructions section" {
+  grep -q '## Stage Instructions' "${ARCH_TEMPLATE}"
+}
+
+@test "Template 2.1-9: architecture template contains Verification section" {
+  grep -q '## Verification' "${ARCH_TEMPLATE}"
+}
+
+@test "Template 2.1-10: architecture template contains {{task_description}} placeholder" {
+  grep -q '{{task_description}}' "${ARCH_TEMPLATE}"
+}
+
+@test "Template 2.1-11: architecture template contains {{failure_context}} placeholder" {
+  grep -q '{{failure_context}}' "${ARCH_TEMPLATE}"
+}
+
+@test "Template 2.1-12: architecture template contains {{mode_instructions}} placeholder" {
+  grep -q '{{mode_instructions}}' "${ARCH_TEMPLATE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 2.1 Tests: Epics-Stories Stage Template — stage-epics-stories.md (AC: #2)
+# ──────────────────────────────────────────────
+
+EPICS_TEMPLATE=".bmad-orchestrator/templates/stage-epics-stories.md"
+
+@test "Template 2.1-13: stage-epics-stories.md template file exists" {
+  [ -f "${EPICS_TEMPLATE}" ]
+}
+
+@test "Template 2.1-14: epics-stories template has valid YAML frontmatter with stage: epics-stories" {
+  head -1 "${EPICS_TEMPLATE}" | grep -q '^---$'
+  grep -q 'stage: epics-stories' "${EPICS_TEMPLATE}"
+}
+
+@test "Template 2.1-15: epics-stories template frontmatter contains agent: bmad-pm" {
+  grep -q 'agent: bmad-pm' "${EPICS_TEMPLATE}"
+}
+
+@test "Template 2.1-16: epics-stories template frontmatter contains command: CE" {
+  grep -q 'command: CE' "${EPICS_TEMPLATE}"
+}
+
+@test "Template 2.1-17: epics-stories template frontmatter contains requiredArtifacts with prd.md AND architecture.md" {
+  grep -q 'requiredArtifacts' "${EPICS_TEMPLATE}"
+  grep -q 'prd\.md' "${EPICS_TEMPLATE}"
+  grep -q 'architecture\.md' "${EPICS_TEMPLATE}"
+}
+
+@test "Template 2.1-18: epics-stories template frontmatter contains producedArtifacts with epics.md" {
+  grep -q 'producedArtifacts' "${EPICS_TEMPLATE}"
+  grep -q 'epics\.md' "${EPICS_TEMPLATE}"
+}
+
+@test "Template 2.1-19: epics-stories template contains Context Injection section" {
+  grep -q '## Context Injection' "${EPICS_TEMPLATE}"
+}
+
+@test "Template 2.1-20: epics-stories template contains Stage Instructions section" {
+  grep -q '## Stage Instructions' "${EPICS_TEMPLATE}"
+}
+
+@test "Template 2.1-21: epics-stories template contains Verification section" {
+  grep -q '## Verification' "${EPICS_TEMPLATE}"
+}
+
+@test "Template 2.1-22: epics-stories template contains {{task_description}} placeholder" {
+  grep -q '{{task_description}}' "${EPICS_TEMPLATE}"
+}
+
+@test "Template 2.1-23: epics-stories template contains {{failure_context}} placeholder" {
+  grep -q '{{failure_context}}' "${EPICS_TEMPLATE}"
+}
+
+@test "Template 2.1-24: epics-stories template contains {{mode_instructions}} placeholder" {
+  grep -q '{{mode_instructions}}' "${EPICS_TEMPLATE}"
+}
