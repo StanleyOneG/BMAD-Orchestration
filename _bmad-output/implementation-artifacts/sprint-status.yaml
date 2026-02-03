@@ -32,11 +32,6 @@
 # - SM typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
-generated: 2025-01-28
-project: bmad_testing
-tracking_system: file-system
-story_location: _bmad-output/implementation-artifacts
-
 development_status:
     # Epic 1: Single-Stage Autonomous Execution
     epic-1: in-progress
@@ -52,7 +47,7 @@ development_status:
     2-1-architecture-epics-stories-stage-templates: done
     2-2-implementation-readiness-stage-template: done
     2-3-sprint-planning-story-loop-initialization: done
-    2-4-story-loop-iteration-create-story-template: backlog
+    2-4-story-loop-iteration-create-story-template: done
     2-5-dev-story-code-review-templates-with-git-commits: backlog
     2-6-quick-flow-pipeline: backlog
     2-7-file-reference-detection-resume-capability: backlog

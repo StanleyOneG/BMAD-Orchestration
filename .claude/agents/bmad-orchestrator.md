@@ -103,6 +103,8 @@ The stages execute in this exact order:
 
 During story loop stages, `currentStage` remains set to the active story-level stage (e.g., `dev-story`). The `storyLoop` object tracks which specific story is being worked on.
 
+**Status Vocabulary Note:** The orchestrator's `storyLoop` uses its own internal status vocabulary (`pending` → `created` → `implemented` → `completed`) which is distinct from the SM-generated `sprint-status.yaml` vocabulary (`backlog` → `ready-for-dev` → `in-progress` → `review` → `done`). These are intentionally separate systems. The orchestrator reads and writes only `state.yaml` for loop iteration (per Boundary Rules, Section 9). `sprint-status.yaml` is a one-shot SM artifact used for human-readable tracking and is never updated by the orchestrator.
+
 ### storyLoop Population (Pre-Step Before Sprint Planning)
 
 When `currentStage` is `sprint-planning` and `storyLoop` is `null` or empty, the orchestrator must populate the storyLoop structure BEFORE loading the sprint-planning template or launching any sub-agent. This is an orchestrator-internal responsibility, not a sub-agent task.
@@ -142,6 +144,30 @@ When `currentStage` is `sprint-planning` and `storyLoop` is `null` or empty, the
 5. Perform atomic state update (Section 7.2): write to `state.yaml.tmp` then rename to `state.yaml`
 
 **Important:** This population step completes entirely before the sprint-planning template is loaded. It is a synchronous pre-step, not part of the template interaction flow.
+
+### Story Loop Phase Initialization (Pre-Step Before Create-Story)
+
+When a story in `storyLoop.epics[].stories[]` has `status: pending` and no `phase` field (or `phase` is `null`/undefined), the orchestrator must assign a default phase before proceeding with template loading.
+
+**Trigger Condition:** The current story (first non-completed story in first non-completed epic) has `status: pending` AND (`phase` is `null`, undefined, or missing).
+
+**Skip Condition:** If the current story already has a valid `phase` field set (e.g., `create-story`, `dev-story`, or `code-review` from a previous interrupted run), skip default phase assignment and proceed directly to Template Loading (Section 3).
+
+**Default Phase Assignment:** Set the story's `phase` to `create-story`. This is the first phase in the story lifecycle and represents the entry point for all newly-encountered stories.
+
+**Story Key Extraction and Injection:** Before loading the `stage-create-story.md` template, the orchestrator must:
+
+1. Extract the current story's `id` from `storyLoop.epics[].stories[]` — this is the story key (e.g., `2-4-story-loop-iteration-create-story-template`)
+2. Inject the story key into the template's `{{story_key}}` placeholder so the SM sub-agent knows which story to create
+3. Resolve `producedArtifacts` paths by replacing `{{story_key}}` with the actual story key for verification
+
+**Phase Transition After Create-Story Completes:** After verification passes for a story's `create-story` phase:
+
+1. Update the story's `phase` to `dev-story` (next phase in the lifecycle)
+2. Update the story's `status` to `created`
+3. Perform atomic state update (Section 7.2)
+
+**Important:** During the story loop, `currentStage` remains set to the active story-level stage (e.g., `create-story`). It does NOT advance to `dev-story` at the pipeline level. The `storyLoop` object tracks which specific story is active and what phase it is in. The `currentStage` field reflects the current story-level stage being executed across the loop.
 
 ### Quick Flow Track (`route: quick`)
 

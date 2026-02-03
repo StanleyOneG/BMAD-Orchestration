@@ -697,3 +697,105 @@ SPRINT_TEMPLATE=".bmad-orchestrator/templates/stage-sprint-planning.md"
   grep -qi 'slugif\|deterministic.*ID\|slug.*rule' "${AGENT_FILE}"
   grep -qi 'epic-.*{N}\|story.*slug' "${AGENT_FILE}"
 }
+
+# ──────────────────────────────────────────────
+# Story 2.4 Tests: Create Story Stage Template — stage-create-story.md (AC: #2, #3, #4)
+# ──────────────────────────────────────────────
+
+CREATE_STORY_TEMPLATE=".bmad-orchestrator/templates/stage-create-story.md"
+
+@test "Template 2.4-1: stage-create-story.md template file exists" {
+  [ -f "${CREATE_STORY_TEMPLATE}" ]
+}
+
+@test "Template 2.4-2: create-story template has valid YAML frontmatter with stage: create-story" {
+  head -1 "${CREATE_STORY_TEMPLATE}" | grep -q '^---$'
+  grep -q 'stage: create-story' "${CREATE_STORY_TEMPLATE}"
+}
+
+@test "Template 2.4-3: create-story template frontmatter contains agent: bmad-sm" {
+  grep -q 'agent: bmad-sm' "${CREATE_STORY_TEMPLATE}"
+}
+
+@test "Template 2.4-4: create-story template frontmatter contains command: CS" {
+  grep -q 'command: CS' "${CREATE_STORY_TEMPLATE}"
+}
+
+@test "Template 2.4-5: create-story template frontmatter contains requiredArtifacts with epics.md" {
+  grep -q 'requiredArtifacts' "${CREATE_STORY_TEMPLATE}"
+  grep -q 'epics\.md' "${CREATE_STORY_TEMPLATE}"
+}
+
+@test "Template 2.4-6: create-story template frontmatter contains requiredArtifacts with sprint-status.yaml" {
+  grep -q 'requiredArtifacts' "${CREATE_STORY_TEMPLATE}"
+  grep -q 'sprint-status\.yaml' "${CREATE_STORY_TEMPLATE}"
+}
+
+@test "Template 2.4-7: create-story template frontmatter contains producedArtifacts with {{story_key}} dynamic placeholder" {
+  grep -q 'producedArtifacts' "${CREATE_STORY_TEMPLATE}"
+  grep -q '{{story_key}}' "${CREATE_STORY_TEMPLATE}"
+}
+
+@test "Template 2.4-7b: create-story template frontmatter contains requiredArtifacts with architecture.md" {
+  grep -q 'requiredArtifacts' "${CREATE_STORY_TEMPLATE}"
+  grep -q 'architecture\.md' "${CREATE_STORY_TEMPLATE}"
+}
+
+@test "Template 2.4-8: create-story template contains Context Injection section" {
+  grep -q '## Context Injection' "${CREATE_STORY_TEMPLATE}"
+}
+
+@test "Template 2.4-9: create-story template contains Stage Instructions section" {
+  grep -q '## Stage Instructions' "${CREATE_STORY_TEMPLATE}"
+}
+
+@test "Template 2.4-10: create-story template contains Verification section" {
+  grep -q '## Verification' "${CREATE_STORY_TEMPLATE}"
+}
+
+@test "Template 2.4-11: create-story template contains {{task_description}} placeholder" {
+  grep -q '{{task_description}}' "${CREATE_STORY_TEMPLATE}"
+}
+
+@test "Template 2.4-12: create-story template contains {{failure_context}} placeholder" {
+  grep -q '{{failure_context}}' "${CREATE_STORY_TEMPLATE}"
+}
+
+@test "Template 2.4-13: create-story template contains {{mode_instructions}} placeholder" {
+  grep -q '{{mode_instructions}}' "${CREATE_STORY_TEMPLATE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 2.4 Tests: Story Loop Phase Handling in Orchestrator Agent (AC: #1, #2, #7)
+# ──────────────────────────────────────────────
+
+@test "StoryLoop 2.4-1: agent describes default phase assignment for stories with no phase field" {
+  grep -qi 'default.*phase\|phase.*create-story\|default phase assignment' "${AGENT_FILE}"
+  grep -qi 'pending.*phase\|phase.*null\|phase.*undefined\|phase.*missing' "${AGENT_FILE}"
+}
+
+@test "StoryLoop 2.4-2: agent describes story key extraction/injection for create-story stage" {
+  grep -qi 'story.*key.*extract\|extract.*story.*key\|story key.*inject\|inject.*story key' "${AGENT_FILE}"
+  grep -qi '{{story_key}}' "${AGENT_FILE}"
+}
+
+@test "StoryLoop 2.4-2b: Phase Initialization subsection references producedArtifacts resolution with story key" {
+  grep -qi 'producedArtifacts.*{{story_key}}\|{{story_key}}.*producedArtifacts\|Resolve.*producedArtifacts.*story key\|producedArtifacts.*replacing.*{{story_key}}' "${AGENT_FILE}"
+}
+
+@test "StoryLoop 2.4-2c: Phase Initialization subsection defines skip condition for already-phased stories" {
+  grep -qi 'skip.*phase.*assignment\|already.*has.*valid.*phase\|skip condition' "${AGENT_FILE}"
+}
+
+@test "StoryLoop 2.4-3: agent describes phase transition from create-story to dev-story" {
+  grep -qi 'phase.*dev-story\|create-story.*dev-story\|phase transition' "${AGENT_FILE}"
+}
+
+@test "StoryLoop 2.4-4: agent describes status update to created after create-story completes" {
+  grep -qi 'status.*created\|created.*status' "${AGENT_FILE}"
+}
+
+@test "StoryLoop 2.4-5: agent documents storyLoop vs sprint-status.yaml as separate status vocabularies" {
+  grep -qi 'intentionally separate' "${AGENT_FILE}"
+  grep -qi 'sprint-status\.yaml.*vocabulary\|status.*vocabulary.*sprint-status' "${AGENT_FILE}"
+}
