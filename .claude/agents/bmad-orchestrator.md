@@ -485,12 +485,38 @@ After state update (or failure handling), exit with the correct code:
 ### Checkpoint Gate Logic
 
 When `mode: checkpoint`:
-- After completing a stage, check if the stage identifier is in the `gates` array
-- If it IS a gate: set `status: paused` in state, exit with code 3
-- If it is NOT a gate: continue normally, exit with code 0
+- After completing a stage and updating state (Section 7.1), check if the **completed stage** identifier is in the `gates` array. Use the stage that was just appended to `completedStages` — NOT `currentStage`, which has already been advanced to the next stage by Section 7.1.
+- If the completed stage IS a gate: generate a checkpoint summary (Section 8.1), set `status: paused` in state via atomic write (Section 7.2), and exit with code 3
+- If the completed stage is NOT a gate: continue normally, exit with code 0
 
 When `mode: autonomous`:
 - Gates are ignored, all stages continue automatically with exit code 0
+
+### 8.1 Checkpoint Summary Generation
+
+When a checkpoint gate is detected (completed stage is in `gates` array), generate a summary BEFORE setting `status: paused` and exiting:
+
+1. **Read produced artifacts:** Use the `producedArtifacts` list from the current stage's template frontmatter to identify what was created.
+2. **Extract key decisions:** Read each produced artifact file and extract a brief summary (2-3 bullet points) of key decisions, outputs, or findings.
+3. **Output summary to conversation:** Display a formatted checkpoint summary:
+   ```
+   ═══════════════════════════════════════════════════════════
+   CHECKPOINT GATE — [Stage Name]
+   ═══════════════════════════════════════════════════════════
+   Artifacts produced:
+   - <artifact path 1>
+   - <artifact path 2>
+
+   Key decisions / outputs:
+   - <bullet 1>
+   - <bullet 2>
+   - <bullet 3>
+
+   To continue: Run `/bmad-orchestrate --resume` then `.bmad-orchestrator/loop.sh`
+   ═══════════════════════════════════════════════════════════
+   ```
+4. **Append to status report:** Write a stage entry to `.bmad-orchestrator/status-report.md` (per Section 7.3) with outcome `PAUSED (CHECKPOINT)` and the summary details in the Details field.
+5. **Then** set `status: paused` and exit with code 3.
 
 ### Exit Implementation
 

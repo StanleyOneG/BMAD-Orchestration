@@ -1788,3 +1788,300 @@ READINESS_TEMPLATE=".bmad-orchestrator/templates/stage-readiness.md"
   grep -q '3)' "${LOOP_SCRIPT}"
   grep -q '\*)' "${LOOP_SCRIPT}"
 }
+
+# ══════════════════════════════════════════════════════════
+# Story 4.1 Tests: Checkpoint Gate Pausing & Approval
+# ══════════════════════════════════════════════════════════
+
+# ──────────────────────────────────────────────
+# 4.1 Task 1: Checkpoint gate logic in orchestrator agent (AC: #1, #5)
+# ──────────────────────────────────────────────
+
+@test "Checkpoint 4.1-1: agent describes mode: checkpoint gate checking" {
+  grep -qi 'mode.*checkpoint' "${AGENT_FILE}"
+  grep -qi 'checkpoint.*gate\|gate.*checkpoint' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-2: agent describes gates array for checkpoint stages" {
+  grep -q 'gates' "${AGENT_FILE}"
+  grep -qi 'gates.*array\|array.*gates' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-3: agent describes status: paused on checkpoint gate" {
+  grep -q 'status.*paused\|paused.*status' "${AGENT_FILE}"
+  grep -qi 'checkpoint.*paused\|paused.*checkpoint' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-4: agent describes exit code 3 for checkpoint pause" {
+  grep -q 'exit.*code 3\|code.*3.*checkpoint\|3.*checkpoint.*pause' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-5: agent checkpoint gate checks the completed stage not currentStage" {
+  grep -qi 'completed stage.*gates\|completed.*stage.*identifier.*gates' "${AGENT_FILE}"
+  grep -qi 'NOT.*currentStage\|not.*currentStage' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-6: agent describes autonomous mode ignoring gates" {
+  grep -qi 'autonomous' "${AGENT_FILE}"
+  grep -qi 'gates.*ignored\|ignored.*gates\|gates are ignored' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-7: checkpoint gate logic is in Section 8" {
+  # Verify checkpoint gate logic appears after Section 8 heading
+  local s8_line gate_line
+  s8_line=$(grep -n '## 8\.' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  gate_line=$(grep -n 'Checkpoint Gate Logic' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  [ -n "${s8_line}" ]
+  [ -n "${gate_line}" ]
+  [ "${gate_line}" -ge "${s8_line}" ]
+}
+
+# ──────────────────────────────────────────────
+# 4.1 Task 2: Checkpoint summary presentation (AC: #2)
+# ──────────────────────────────────────────────
+
+@test "Checkpoint 4.1-8: agent describes checkpoint summary generation" {
+  grep -qi 'checkpoint.*summary\|summary.*checkpoint' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-9: checkpoint summary includes stage name" {
+  grep -qi 'stage.*name\|Stage Name' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-10: checkpoint summary includes artifacts produced" {
+  grep -qi 'producedArtifacts\|artifact.*produced\|Artifacts produced' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-11: checkpoint summary includes key decisions or outputs" {
+  grep -qi 'key.*decision\|key.*output\|Key decisions' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-12: checkpoint summary includes resume instructions" {
+  grep -q '\-\-resume' "${AGENT_FILE}"
+  grep -qi 'resume.*instruction\|To continue\|resume.*to continue' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-13: checkpoint summary is output to conversation before exit" {
+  grep -qi 'output.*summary.*conversation\|Output summary to conversation\|Display.*checkpoint.*summary' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-14: checkpoint summary appended to status-report.md" {
+  grep -qi 'status-report.*PAUSED.*CHECKPOINT\|PAUSED (CHECKPOINT)\|PAUSED.*CHECKPOINT' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-15: Section 8.1 exists for checkpoint summary generation" {
+  grep -q '### 8\.1' "${AGENT_FILE}"
+  grep -qi '8\.1.*Checkpoint Summary\|8\.1.*checkpoint.*summary' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-16: checkpoint summary generation happens before status: paused" {
+  # Section 8.1 must describe generating summary BEFORE setting paused and exiting
+  # Find the first summary step (Read produced artifacts) and the paused+exit step
+  local summary_line paused_line
+  summary_line=$(grep -n 'Read produced artifacts\|Extract key decisions' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  paused_line=$(grep -n 'status.*paused.*exit.*code 3\|status.*paused.*exit with code 3\|set.*status.*paused.*and exit' "${AGENT_FILE}" | tail -1 | cut -d: -f1)
+  [ -n "${summary_line}" ]
+  [ -n "${paused_line}" ]
+  [ "${summary_line}" -lt "${paused_line}" ]
+}
+
+# ──────────────────────────────────────────────
+# 4.1 Task 2: Checkpoint summary reads produced artifacts (AC: #2)
+# ──────────────────────────────────────────────
+
+@test "Checkpoint 4.1-17: checkpoint summary reads producedArtifacts from template frontmatter" {
+  grep -qi 'producedArtifacts.*template\|template.*frontmatter.*producedArtifacts\|producedArtifacts.*list.*template' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-18: checkpoint summary extracts brief summary from artifacts" {
+  grep -qi 'brief.*summary\|2-3.*bullet\|bullet.*point' "${AGENT_FILE}"
+}
+
+# ──────────────────────────────────────────────
+# 4.1 Task 3: Loop.sh checkpoint messaging (AC: #3)
+# ──────────────────────────────────────────────
+
+@test "Checkpoint 4.1-19: loop script handles exit code 3 (stop with PAUSED status report)" {
+  grep -q 'return 3' "${LOOP_SCRIPT}"
+  grep -qi 'write_status_report.*PAUSED' "${LOOP_SCRIPT}"
+}
+
+@test "Checkpoint 4.1-20: loop script displays checkpoint stage name in message" {
+  grep -qi 'Checkpoint reached after' "${LOOP_SCRIPT}"
+}
+
+@test "Checkpoint 4.1-21: loop script reads completed stage from state for checkpoint message" {
+  grep -qi 'read_last_completed_stage\|completedStage\|checkpoint_stage' "${LOOP_SCRIPT}"
+}
+
+@test "Checkpoint 4.1-22: loop script includes resume instructions in checkpoint message" {
+  grep -qi '\-\-resume.*to continue\|resume.*to continue' "${LOOP_SCRIPT}"
+}
+
+@test "Checkpoint 4.1-23: loop script does NOT relaunch after exit code 3" {
+  # Exit code 3 returns 3, and handler_result -ne 0 stops loop
+  local hec_line main_line
+  hec_line=$(grep -n 'handle_exit_code()' "${LOOP_SCRIPT}" | head -1 | cut -d: -f1)
+  main_line=$(grep -n 'main()' "${LOOP_SCRIPT}" | head -1 | cut -d: -f1)
+  awk "NR>=${hec_line} && NR<=${main_line}" "${LOOP_SCRIPT}" | grep -q 'return 3'
+}
+
+@test "Checkpoint 4.1-24: loop script has read_last_completed_stage function" {
+  grep -q 'read_last_completed_stage()' "${LOOP_SCRIPT}"
+}
+
+@test "Checkpoint 4.1-25: read_last_completed_stage parses block-style completedStages correctly" {
+  # Behavioral test: create a state file with block-style completedStages followed by gates array
+  # The function must return the last completed stage, NOT entries from gates
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cat > "${tmp_dir}/state.yaml" <<'YAML'
+completedStages:
+  - prd
+  - architecture
+gates:
+  - prd
+  - architecture
+  - epics-stories
+  - readiness
+  - code-review
+YAML
+  # Source loop script with TEST_BMAD_DIR to control STATE_FILE path
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  local result
+  result="$(read_last_completed_stage)"
+  rm -rf "${tmp_dir}"
+  [ "${result}" = "architecture" ]
+}
+
+@test "Checkpoint 4.1-26: loop script checkpoint message includes stage name from state" {
+  # The exit code 3 handler should use read_last_completed_stage
+  grep -qi 'read_last_completed_stage' "${LOOP_SCRIPT}"
+  grep -qi 'checkpoint_stage' "${LOOP_SCRIPT}"
+}
+
+@test "Checkpoint 4.1-43: read_last_completed_stage handles flow-style completedStages" {
+  # Behavioral test: flow-style [prd, architecture] should return architecture
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cat > "${tmp_dir}/state.yaml" <<'YAML'
+completedStages: [prd, architecture]
+gates:
+  - prd
+  - architecture
+  - epics-stories
+  - readiness
+  - code-review
+YAML
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  local result
+  result="$(read_last_completed_stage)"
+  rm -rf "${tmp_dir}"
+  [ "${result}" = "architecture" ]
+}
+
+@test "Checkpoint 4.1-44: read_last_completed_stage returns empty for empty completedStages" {
+  # Behavioral test: empty array should return empty string
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cat > "${tmp_dir}/state.yaml" <<'YAML'
+completedStages: []
+gates:
+  - prd
+  - architecture
+YAML
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  local result
+  result="$(read_last_completed_stage)"
+  rm -rf "${tmp_dir}"
+  [ -z "${result}" ]
+}
+
+# ──────────────────────────────────────────────
+# 4.1 Task 4: Resume from checkpoint pause (AC: #4)
+# ──────────────────────────────────────────────
+
+@test "Checkpoint 4.1-27: slash command Step 2 handles status: paused (sets to running)" {
+  grep -q 'status: running' "${SLASH_CMD_FILE}"
+}
+
+@test "Checkpoint 4.1-28: slash command preserves state fields on resume from pause" {
+  # Step 2 says update ONLY specific fields, preserving everything else
+  grep -qi 'Update ONLY\|preserve\|preserving' "${SLASH_CMD_FILE}"
+}
+
+@test "Checkpoint 4.1-29: orchestrator handles status: paused on cold start" {
+  grep -qi 'status.*paused\|paused.*checkpoint\|paused.*gate' "${AGENT_FILE}"
+  # Section 1.2 point 3 handles paused status
+  grep -qi 'paused.*update.*running\|paused.*resumed' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-30: orchestrator updates status from paused to running" {
+  grep -qi 'status.*running\|update.*status.*running' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-31: orchestrator proceeds to currentStage after resume from pause" {
+  # Section 1.2 point 3: proceed to Stage Execution for currentStage
+  grep -qi 'proceed.*Stage Execution\|proceed.*currentStage' "${AGENT_FILE}"
+}
+
+@test "Checkpoint 4.1-32: currentStage is already advanced before checkpoint pause" {
+  # Section 7.1 advances currentStage, then Section 8 checks gates on completed stage
+  # On resume, currentStage is already the next stage
+  grep -qi 'currentStage.*advanced\|advance.*currentStage\|currentStage.*next' "${AGENT_FILE}"
+}
+
+# ──────────────────────────────────────────────
+# 4.1 Task 5.5: Default gates array in slash command (AC: #1)
+# ──────────────────────────────────────────────
+
+@test "Checkpoint 4.1-33: slash command Step 4 creates state with gates array" {
+  grep -q 'gates:' "${SLASH_CMD_FILE}"
+}
+
+@test "Checkpoint 4.1-34: gates array contains prd" {
+  grep -q 'prd' "${SLASH_CMD_FILE}"
+}
+
+@test "Checkpoint 4.1-35: gates array contains architecture" {
+  grep -q 'architecture' "${SLASH_CMD_FILE}"
+}
+
+@test "Checkpoint 4.1-36: gates array contains epics-stories" {
+  grep -q 'epics-stories' "${SLASH_CMD_FILE}"
+}
+
+@test "Checkpoint 4.1-37: gates array contains readiness" {
+  grep -q 'readiness' "${SLASH_CMD_FILE}"
+}
+
+@test "Checkpoint 4.1-38: gates array contains code-review" {
+  grep -q 'code-review' "${SLASH_CMD_FILE}"
+}
+
+# ──────────────────────────────────────────────
+# 4.1 Integration: Checkpoint flow end-to-end validation (AC: #1, #2, #3, #4, #5)
+# ──────────────────────────────────────────────
+
+@test "Checkpoint 4.1-39: exit code 3 in agent matches exit code 3 in loop script" {
+  grep -q 'exit.*3\|code 3\|code.*3' "${AGENT_FILE}"
+  grep -q '3)' "${LOOP_SCRIPT}"
+}
+
+@test "Checkpoint 4.1-40: agent and loop both reference checkpoint pause" {
+  grep -qi 'checkpoint.*pause\|pause.*checkpoint' "${AGENT_FILE}"
+  grep -qi 'checkpoint\|Checkpoint' "${LOOP_SCRIPT}"
+}
+
+@test "Checkpoint 4.1-41: gates array in slash command matches gates referenced in agent" {
+  # Both files reference the same gate stages
+  for gate in prd architecture epics-stories readiness code-review; do
+    grep -q "${gate}" "${SLASH_CMD_FILE}"
+    grep -q "${gate}" "${AGENT_FILE}"
+  done
+}
+
+@test "Checkpoint 4.1-42: status: paused is consistently handled across agent and slash command" {
+  grep -q 'paused' "${AGENT_FILE}"
+  grep -q 'paused\|status: running' "${SLASH_CMD_FILE}"
+}

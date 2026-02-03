@@ -54,15 +54,15 @@ development_status:
     epic-2-retrospective: optional
 
     # Epic 3: Failure Recovery & Artifact Safety
-    epic-3: in-progress
+    epic-3: done
     3-1-stage-failure-detection-retry-logic: done
     3-2-upstream-re-routing-remediation: done
     3-3-terminal-failure-artifact-protection: done
     epic-3-retrospective: optional
 
     # Epic 4: Checkpoint Mode & Party Mode
-    epic-4: backlog
-    4-1-checkpoint-gate-pausing-approval: backlog
+    epic-4: in-progress
+    4-1-checkpoint-gate-pausing-approval: done
     4-2-checkpoint-feedback-revision: backlog
     4-3-party-mode-integration: backlog
     epic-4-retrospective: optional

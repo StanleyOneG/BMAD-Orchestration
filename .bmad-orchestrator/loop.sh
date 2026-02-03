@@ -52,6 +52,17 @@ read_state() {
   echo "${value}"
 }
 
+read_last_completed_stage() {
+  local last_stage
+  # Block style: extract only entries between completedStages: and the next top-level key
+  last_stage="$(sed -n '/^completedStages:/,/^[a-zA-Z]/{/^  - /p}' "${STATE_FILE}" | tail -1 | sed 's/^  - //' | tr -d '"' | tr -d "'" | xargs)"
+  if [[ -z "${last_stage}" ]]; then
+    # Fallback to flow style: completedStages: [prd, architecture]
+    last_stage="$(grep "^completedStages:" "${STATE_FILE}" | sed 's/.*\[//' | sed 's/\]//' | tr ',' '\n' | tail -1 | tr -d '"' | tr -d "'" | xargs)"
+  fi
+  echo "${last_stage}"
+}
+
 preflight_check() {
   if [[ ! -f "${STATE_FILE}" ]]; then
     log "ERROR: state.yaml not found at ${STATE_FILE}. Run /bmad-orchestrate first to initialize."
@@ -137,8 +148,13 @@ handle_exit_code() {
       return 2
       ;;
     3)
-      log "Checkpoint pause. Review results and resume when ready."
-      write_status_report "PAUSED" "Checkpoint reached - review required" "${ITERATION:-0}"
+      local checkpoint_stage
+      checkpoint_stage="$(read_last_completed_stage)"
+      if [[ -z "${checkpoint_stage}" ]]; then
+        checkpoint_stage="unknown"
+      fi
+      log "Checkpoint reached after ${checkpoint_stage}. Review artifacts and run --resume to continue."
+      write_status_report "PAUSED" "Checkpoint reached after ${checkpoint_stage} - review required" "${ITERATION:-0}"
       return 3
       ;;
     *)
