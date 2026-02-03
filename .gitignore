@@ -1,0 +1,25 @@
+# Dependencies
+**/node_modules/
+pnpm-lock.yaml
+bun.lock
+deno.lock
+pnpm-workspace.yaml
+package-lock.json
+
+test-output/*
+coverage/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Build output
+build/*.txt
+
+# Environment variables
+.env
+
+# System files
+.DS_Store
+Thumbs.db
