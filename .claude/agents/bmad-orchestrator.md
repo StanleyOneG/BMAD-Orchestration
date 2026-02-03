@@ -275,6 +275,28 @@ Extract YAML frontmatter fields:
 
 Before launching the sub-agent, verify all `requiredArtifacts` exist on disk. If any required artifact is missing, log the failure and handle per the Failure Handling protocol (Section 6).
 
+### 3.4 Failure Context Construction
+
+After loading the template and before launching the sub-agent, construct the `{{failure_context}}` string for injection into the template:
+
+1. **Check retry state:** If `currentRetries` is 0 AND the `failures` array has no entries matching `currentStage`, set `{{failure_context}}` to an empty string and skip the remaining steps.
+
+2. **Filter failures:** Extract all entries from the `failures` array where `stage` matches `currentStage`. If no entries match (possible inconsistent state), set `{{failure_context}}` to an empty string and skip to step 4.
+
+3. **Build context string:** For each matching failure entry, format a line:
+   ```
+   Attempt <attempt>: <error>
+   ```
+   Concatenate all lines into a single block, prefixed with a header:
+   ```
+   Previous failures on this stage:
+   Attempt 1: <error summary from first failure>
+   Attempt 2: <error summary from second failure>
+   Address these specific issues in this retry.
+   ```
+
+4. **Inject into template:** Replace the `{{failure_context}}` placeholder in the loaded template content with the constructed string. If no failures matched, replace with an empty string.
+
 ---
 
 ## 4. Sub-Agent Interaction

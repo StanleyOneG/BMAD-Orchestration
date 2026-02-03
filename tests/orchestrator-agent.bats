@@ -1208,3 +1208,200 @@ SLASH_CMD_FILE=".claude/commands/bmad-orchestrate.md"
   grep -q 'state\.yaml\.tmp' "${SLASH_CMD_FILE}"
   grep -qi 'rename\|mv.*state\.yaml\|atomic write' "${SLASH_CMD_FILE}"
 }
+
+# ──────────────────────────────────────────────
+# Story 3.1 Tests: Failure Detection in Orchestrator Agent (AC: #1, #2)
+# ──────────────────────────────────────────────
+
+@test "Failure 3.1-1: agent describes verification failure detection for missing artifacts" {
+  grep -qi 'producedArtifacts.*exist\|verify.*producedArtifacts\|Artifact Check' "${AGENT_FILE}"
+  grep -qi 'exist on disk\|Check each file path' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-2: agent describes goal alignment check as part of verification" {
+  grep -qi 'Goal Alignment\|goal.*alignment\|compare.*output.*against.*task' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-3: agent describes quality gate tri-state (PASS/CONCERNS/FAIL)" {
+  grep -q 'PASS' "${AGENT_FILE}"
+  grep -q 'CONCERNS' "${AGENT_FILE}"
+  grep -q 'FAIL' "${AGENT_FILE}"
+  grep -qi 'Quality Gate' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-4: agent describes FAIL triggering failure handling (Section 6)" {
+  grep -qi 'FAIL.*trigger.*failure\|FAIL.*failure handling\|FAIL.*Section 5\.5\|FAIL.*Section 6' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-5: agent describes CONCERNS as pass-with-warnings (not failure)" {
+  grep -qi 'CONCERNS.*pass\|CONCERNS.*proceed\|CONCERNS.*warning' "${AGENT_FILE}"
+  grep -qi 'PASS (CONCERNS)\|PASS.*CONCERNS' "${AGENT_FILE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 3.1 Tests: Retry Logic in Orchestrator Agent (AC: #3, #4, #5)
+# ──────────────────────────────────────────────
+
+@test "Failure 3.1-6: agent describes failures array format (stage, attempt, error, timestamp)" {
+  grep -q 'stage:' "${AGENT_FILE}"
+  grep -q 'attempt:' "${AGENT_FILE}"
+  grep -q 'error:' "${AGENT_FILE}"
+  grep -q 'timestamp:' "${AGENT_FILE}"
+  grep -qi 'failures.*array\|failures' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-7: agent describes single-line error summaries in failures array" {
+  grep -qi 'single-line.*error\|single.line.*error.*summar\|error.*single.line' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-8: agent describes currentRetries increment on failure" {
+  grep -qi 'increment.*currentRetries\|Increment.*currentRetries\|currentRetries.*increment' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-9: agent describes currentStage unchanged on retry (stays on failed stage)" {
+  grep -qi 'currentStage.*unchanged\|keep.*currentStage\|currentStage.*unchanged' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-10: agent describes exit code 0 for retry" {
+  grep -qi 'Exit code 0.*retry\|exit code 0\|exit.*0.*retry\|code 0' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-11: agent describes currentRetries reset to 0 on success" {
+  grep -qi 'currentRetries.*reset.*0\|reset.*currentRetries.*0\|currentRetries.*0.*success' "${AGENT_FILE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 3.1 Tests: Terminal Failure Logic (AC: #5)
+# ──────────────────────────────────────────────
+
+@test "Failure 3.1-12: agent describes maxRetries check for terminal failure" {
+  grep -qi 'currentRetries.*>=.*maxRetries\|maxRetries.*terminal\|currentRetries.*maxRetries' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-13: agent describes status: failed when retries exhausted" {
+  grep -qi 'status.*failed\|status: failed' "${AGENT_FILE}"
+  grep -qi 'maxRetries' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-14: agent describes exit code 1 for terminal failure" {
+  grep -qi 'Exit code 1\|exit code 1\|exit.*1.*stop\|code 1.*fail' "${AGENT_FILE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 3.1 Tests: Failure Context Injection (AC: #6)
+# ──────────────────────────────────────────────
+
+@test "Failure 3.1-15: agent describes failure_context injection into template" {
+  grep -qi 'failure_context.*inject\|inject.*failure_context\|{{failure_context}}.*template\|failure.*context.*inject' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-16: agent describes extracting previous failure info from failures array" {
+  grep -qi 'failure.*entries.*match\|Filter.*failures\|Extract.*entries.*failures\|failures.*array.*match.*currentStage' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-17: agent describes failure context construction mechanism (Section 3.4)" {
+  grep -qi 'Failure Context Construction\|failure.*context.*construct\|Build.*context.*string' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-18: agent describes checking currentRetries before constructing failure context" {
+  grep -qi 'currentRetries.*0\|Check retry state\|currentRetries is 0' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-19: agent describes failure context format (attempt number and error)" {
+  grep -qi 'Attempt.*error\|attempt.*error.*summary\|Attempt <attempt>: <error>' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-20: failure context construction section appears between Template Loading and Sub-Agent Interaction" {
+  local fc_line s4_line s3_line
+  s3_line=$(grep -n '## 3\. Template Loading' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  fc_line=$(grep -n 'Failure Context Construction' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  s4_line=$(grep -n '## 4\. Sub-Agent' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  [ -n "${s3_line}" ] && [ -n "${fc_line}" ] && [ -n "${s4_line}" ]
+  [ "${s3_line}" -lt "${fc_line}" ]
+  [ "${fc_line}" -lt "${s4_line}" ]
+}
+
+# ──────────────────────────────────────────────
+# Story 3.1 Tests: Loop.sh Failure Handling (AC: #4, #5)
+# ──────────────────────────────────────────────
+
+LOOP_SCRIPT=".bmad-orchestrator/loop.sh"
+
+@test "Failure 3.1-21: loop script handles exit code 0 (relaunch for retry)" {
+  grep -q 'return 0' "${LOOP_SCRIPT}"
+  grep -qi 'Stage completed.*Relaunching\|relaunch\|fresh context' "${LOOP_SCRIPT}"
+}
+
+@test "Failure 3.1-22: loop script handles exit code 1 (stop with FAILED)" {
+  grep -q 'return 1' "${LOOP_SCRIPT}"
+  grep -qi 'failed.*retries\|Pipeline failed\|FAILED' "${LOOP_SCRIPT}"
+}
+
+@test "Failure 3.1-23: loop script writes FAILED status report on exit code 1" {
+  grep -qi 'write_status_report.*FAILED' "${LOOP_SCRIPT}"
+}
+
+# ──────────────────────────────────────────────
+# Story 3.1 Tests: Slash Command Failure-Related Initialization (AC: #5)
+# ──────────────────────────────────────────────
+
+@test "Failure 3.1-24: slash command initializes maxRetries: 3" {
+  grep -q 'maxRetries: 3' "${SLASH_CMD_FILE}"
+}
+
+@test "Failure 3.1-25: slash command initializes failures: []" {
+  grep -q 'failures: \[\]' "${SLASH_CMD_FILE}"
+}
+
+@test "Failure 3.1-26: slash command initializes currentRetries: 0" {
+  grep -q 'currentRetries: 0' "${SLASH_CMD_FILE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 3.1 Tests: Template Failure Recovery Sections (AC: #6)
+# ──────────────────────────────────────────────
+
+@test "Failure 3.1-27: all 10 templates contain {{failure_context}} in Context Injection" {
+  local template_dir=".bmad-orchestrator/templates"
+  local count
+  count=$(grep -rl '{{failure_context}}' "${template_dir}" | wc -l)
+  [ "${count}" -ge 10 ]
+}
+
+@test "Failure 3.1-28: all 10 templates contain Failure Recovery section" {
+  local template_dir=".bmad-orchestrator/templates"
+  local count
+  count=$(grep -rl 'Failure Recovery' "${template_dir}" | wc -l)
+  [ "${count}" -ge 10 ]
+}
+
+@test "Failure 3.1-29: stage-prd template has failure_context and Failure Recovery" {
+  grep -q '{{failure_context}}' ".bmad-orchestrator/templates/stage-prd.md"
+  grep -q 'Failure Recovery' ".bmad-orchestrator/templates/stage-prd.md"
+}
+
+@test "Failure 3.1-30: stage-readiness template has failure_context and Failure Recovery" {
+  grep -q '{{failure_context}}' ".bmad-orchestrator/templates/stage-readiness.md"
+  grep -q 'Failure Recovery' ".bmad-orchestrator/templates/stage-readiness.md"
+}
+
+@test "Failure 3.1-31: stage-code-review template has failure_context and Failure Recovery" {
+  grep -q '{{failure_context}}' ".bmad-orchestrator/templates/stage-code-review.md"
+  grep -q 'Failure Recovery' ".bmad-orchestrator/templates/stage-code-review.md"
+}
+
+# ──────────────────────────────────────────────
+# Story 3.1 Tests: Code Review Fixes — Format and Edge Cases
+# ──────────────────────────────────────────────
+
+@test "Failure 3.1-32: agent documents exact failure context header format" {
+  grep -q 'Previous failures on this stage:' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-33: agent documents exact failure context footer format" {
+  grep -q 'Address these specific issues in this retry\.' "${AGENT_FILE}"
+}
+
+@test "Failure 3.1-34: agent handles empty filter result when no failures match currentStage" {
+  grep -qi 'no entries match.*empty string\|If no entries match' "${AGENT_FILE}"
+}

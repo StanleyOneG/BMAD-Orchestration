@@ -43,7 +43,7 @@ development_status:
     epic-1-retrospective: optional
 
     # Epic 2: Full Pipeline & Quick Flow Orchestration
-    epic-2: in-progress
+    epic-2: done
     2-1-architecture-epics-stories-stage-templates: done
     2-2-implementation-readiness-stage-template: done
     2-3-sprint-planning-story-loop-initialization: done
@@ -54,8 +54,8 @@ development_status:
     epic-2-retrospective: optional
 
     # Epic 3: Failure Recovery & Artifact Safety
-    epic-3: backlog
-    3-1-stage-failure-detection-retry-logic: backlog
+    epic-3: in-progress
+    3-1-stage-failure-detection-retry-logic: done
     3-2-upstream-re-routing-remediation: backlog
     3-3-terminal-failure-artifact-protection: backlog
     epic-3-retrospective: optional
