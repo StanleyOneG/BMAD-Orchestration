@@ -106,6 +106,15 @@ After determining what to do (Section 1.2) and before Template Loading (Section 
 
 **Artifact Respect on Resume:** On resume runs, the orchestrator does not regenerate completed stages. `completedStages` tracks what's done, `currentStage` tracks what's next, and `storyLoop` tracks individual story progress. The orchestrator trusts these and picks up exactly where the previous run stopped.
 
+**Partial Artifact Handling on Resume:** When a stage partially produces artifacts before failing (crash, verification failure, retry exhaustion), those partial artifacts are handled implicitly through the normal resume mechanism:
+
+1. The orchestrator never marks a stage as completed unless verification has passed (Section 5.4). A stage that crashed or failed verification is NOT in `completedStages`.
+2. On resume, `currentStage` still points to the failed stage — the orchestrator re-runs it from the beginning.
+3. The sub-agent workflow re-executes fully, overwriting any partial artifacts from the previous attempt. Sub-agents have no memory of previous launches and produce all outputs from scratch.
+4. This is safe because: (a) the stage was never marked complete, (b) `completedStages` never included the failed stage, and (c) sub-agent workflows are designed to produce all their `producedArtifacts` or none — partial output is always superseded by the next attempt.
+
+No special partial artifact detection logic is needed. The state file's `completedStages` and `currentStage` are sufficient to ensure correct re-execution.
+
 ---
 
 ## 2. Pipeline Stage Sequences

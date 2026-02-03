@@ -1595,3 +1595,196 @@ READINESS_TEMPLATE=".bmad-orchestrator/templates/stage-readiness.md"
 @test "ReRoute 3.2-35: readiness template does NOT reference reRouteOrigin field directly" {
   ! grep -q 'reRouteOrigin' "${READINESS_TEMPLATE}"
 }
+
+# ──────────────────────────────────────────────
+# Story 3.3 Tests: Terminal Failure in Orchestrator Agent (AC: #1, #2)
+# ──────────────────────────────────────────────
+
+@test "Terminal 3.3-1: agent describes maxRetries check triggering terminal failure" {
+  grep -qi 'currentRetries.*>=.*maxRetries' "${AGENT_FILE}"
+  grep -qi 'status.*failed' "${AGENT_FILE}"
+}
+
+@test "Terminal 3.3-2: agent describes status: failed on retry exhaustion in Section 5.5" {
+  grep -qi 'currentRetries.*>=.*maxRetries.*status.*failed\|maxRetries.*set.*status.*failed\|maxRetries.*status: failed' "${AGENT_FILE}"
+}
+
+@test "Terminal 3.3-3: agent describes exit code 1 for terminal failure in Section 5.5" {
+  grep -qi 'currentRetries.*>=.*maxRetries.*exit code 1\|maxRetries.*exit code 1' "${AGENT_FILE}"
+}
+
+@test "Terminal 3.3-4: agent describes exit code 1 for terminal failure in Section 6" {
+  local s6_line s7_line
+  s6_line=$(grep -n '## 6\. Failure' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  s7_line=$(grep -n '## 7\. State Update' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  awk "NR>=${s6_line} && NR<=${s7_line}" "${AGENT_FILE}" | grep -qi 'exit code 1.*stop\|Exit code 1'
+}
+
+@test "Terminal 3.3-5: agent describes status: failed in Section 6 step 4" {
+  local s6_line s7_line
+  s6_line=$(grep -n '## 6\. Failure' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  s7_line=$(grep -n '## 7\. State Update' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  awk "NR>=${s6_line} && NR<=${s7_line}" "${AGENT_FILE}" | grep -qi 'status.*failed'
+}
+
+@test "Terminal 3.3-6: agent describes state preservation on failure — all fields preserved" {
+  # Section 6 keeps currentStage unchanged AND Section 7.1 preserves all other fields
+  grep -qi 'Keep.*currentStage.*unchanged\|currentStage.*unchanged' "${AGENT_FILE}"
+  grep -qi 'All other fields preserved as-is' "${AGENT_FILE}"
+}
+
+@test "Terminal 3.3-7: agent describes failures array appended on verification fail" {
+  grep -qi 'Log failure.*failures array\|Append to.*failures.*array\|failures array.*stage.*attempt.*error' "${AGENT_FILE}"
+}
+
+@test "Terminal 3.3-8: agent describes currentRetries increment on failure" {
+  grep -qi 'Increment.*currentRetries' "${AGENT_FILE}"
+}
+
+@test "Terminal 3.3-9: agent handles failed status on cold start (Section 1.2 exits code 1)" {
+  grep -qi 'status.*is.*failed.*Exit.*code 1\|status.*failed.*Pipeline previously failed.*Exit.*code 1\|failed.*exit.*code 1' "${AGENT_FILE}"
+}
+
+@test "Terminal 3.3-10: agent preserves all state fields via Section 7.1 (all other fields preserved)" {
+  grep -qi 'All other fields preserved as-is\|all other fields preserved' "${AGENT_FILE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 3.3 Tests: Artifact Overwrite Protection in Slash Command (AC: #3)
+# ──────────────────────────────────────────────
+
+@test "Terminal 3.3-11: slash command describes Step 3 artifact overwrite protection" {
+  grep -qi 'Artifact Overwrite Protection' "${SLASH_CMD_FILE}"
+}
+
+@test "Terminal 3.3-12: slash command checks for state.yaml existence (primary check)" {
+  grep -qi 'state\.yaml.*exists\|state\.yaml.*definitive signal' "${SLASH_CMD_FILE}"
+}
+
+@test "Terminal 3.3-13: slash command checks for status-report.md existence (secondary check)" {
+  grep -qi 'status-report\.md.*exists\|Secondary check.*status report' "${SLASH_CMD_FILE}"
+}
+
+@test "Terminal 3.3-14: slash command describes error message for existing artifacts on fresh run" {
+  grep -qi 'Existing artifacts detected\|Error.*Existing artifacts detected' "${SLASH_CMD_FILE}"
+}
+
+@test "Terminal 3.3-15: slash command uses OR logic for primary and secondary checks" {
+  grep -qi 'state\.yaml.*OR.*status-report\.md\|either.*state\.yaml.*OR.*status-report' "${SLASH_CMD_FILE}"
+}
+
+@test "Terminal 3.3-16: slash command describes safety net check for _bmad-output/ artifacts" {
+  grep -qi 'Safety net check\|safety net' "${SLASH_CMD_FILE}"
+  grep -qi 'prd\.md.*exists\|_bmad-output.*planning-artifacts.*prd\.md' "${SLASH_CMD_FILE}"
+}
+
+@test "Terminal 3.3-17: slash command safety net is a hard block on fresh run" {
+  # Safety net check for prd.md uses STOP (hard block), not a warning
+  grep -qi 'prd\.md.*exists.*STOP\|If it exists.*STOP' "${SLASH_CMD_FILE}"
+}
+
+@test "Terminal 3.3-18: slash command describes --resume as recovery path" {
+  grep -qi '\-\-resume.*continue.*previous run\|Use.*--resume.*continue' "${SLASH_CMD_FILE}"
+}
+
+@test "Terminal 3.3-19: slash command enhanced Step 3 checks multiple signals" {
+  grep -qi 'Multiple signals.*checked\|multiple signals' "${SLASH_CMD_FILE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 3.3 Tests: Resume Artifact Respect (AC: #4)
+# ──────────────────────────────────────────────
+
+@test "Terminal 3.3-20: orchestrator describes resume behavior respecting existing artifacts" {
+  grep -qi 'Artifact Respect on Resume\|artifact.*respect.*resume' "${AGENT_FILE}"
+  grep -qi 'does not regenerate completed stages' "${AGENT_FILE}"
+}
+
+@test "Terminal 3.3-21: orchestrator describes completedStages trust on resume" {
+  grep -qi 'completedStages.*tracks what.*done\|trusts these' "${AGENT_FILE}"
+}
+
+@test "Terminal 3.3-22: slash command preserves state fields on resume (only modifies runType, updatedAt, status)" {
+  grep -qi 'Update ONLY these fields' "${SLASH_CMD_FILE}"
+  grep -q 'runType: resume' "${SLASH_CMD_FILE}"
+  grep -q 'status: running' "${SLASH_CMD_FILE}"
+}
+
+@test "Terminal 3.3-23: orchestrator picks up exactly where previous run stopped on resume" {
+  grep -qi 'picks up exactly where the previous run stopped' "${AGENT_FILE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 3.3 Tests: Partial Artifact Handling (AC: #5)
+# ──────────────────────────────────────────────
+
+@test "Terminal 3.3-24: orchestrator describes partial artifact handling on resume" {
+  grep -qi 'Partial Artifact Handling on Resume\|partial artifact' "${AGENT_FILE}"
+}
+
+@test "Terminal 3.3-25: orchestrator describes that failed stages are re-run (currentStage unchanged)" {
+  grep -qi 'currentStage still points to the failed stage\|re-runs it from the beginning\|re-run.*from the beginning' "${AGENT_FILE}"
+}
+
+@test "Terminal 3.3-26: orchestrator describes that completedStages never includes a stage that didn't pass verification" {
+  grep -qi 'never marks a stage as completed unless verification has passed\|never marks a stage as completed unless verification' "${AGENT_FILE}"
+}
+
+@test "Terminal 3.3-27: orchestrator describes implicit partial artifact handling through re-execution" {
+  grep -qi 'handled implicitly\|implicit.*through.*normal.*resume\|implicitly through the normal resume' "${AGENT_FILE}"
+}
+
+@test "Terminal 3.3-28: orchestrator describes sub-agents overwriting partial artifacts on retry" {
+  grep -qi 'overwriting any partial artifacts\|sub-agent workflow re-executes fully\|overwrite.*partial' "${AGENT_FILE}"
+}
+
+@test "Terminal 3.3-29: orchestrator states no special partial artifact detection logic needed" {
+  grep -qi 'No special partial artifact detection logic\|no special partial artifact' "${AGENT_FILE}"
+}
+
+@test "Terminal 3.3-30: partial artifact documentation is in Section 1.4 (Resume Behavior)" {
+  local s14_line pa_line s2_line
+  s14_line=$(grep -n '### 1\.4 Resume Behavior' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  pa_line=$(grep -n 'Partial Artifact Handling on Resume' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  s2_line=$(grep -n '## 2\. Pipeline Stage' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  [ -n "${s14_line}" ] && [ -n "${pa_line}" ] && [ -n "${s2_line}" ]
+  [ "${s14_line}" -lt "${pa_line}" ]
+  [ "${pa_line}" -lt "${s2_line}" ]
+}
+
+# ──────────────────────────────────────────────
+# Story 3.3 Tests: Loop.sh Terminal Failure Handling (AC: #1, #2)
+# ──────────────────────────────────────────────
+
+@test "Terminal 3.3-31: loop script handles exit code 1 (stop with FAILED status report)" {
+  grep -q 'return 1' "${LOOP_SCRIPT}"
+  grep -qi 'FAILED' "${LOOP_SCRIPT}"
+  grep -qi 'write_status_report.*FAILED' "${LOOP_SCRIPT}"
+}
+
+@test "Terminal 3.3-32: loop script captures failure details in status report" {
+  grep -qi 'Pipeline failed at current stage\|Pipeline failed' "${LOOP_SCRIPT}"
+}
+
+@test "Terminal 3.3-33: loop script does NOT relaunch after exit code 1" {
+  # Exit code 1 case in handle_exit_code specifically returns 1
+  local hec_line main_line
+  hec_line=$(grep -n 'handle_exit_code()' "${LOOP_SCRIPT}" | head -1 | cut -d: -f1)
+  main_line=$(grep -n 'main()' "${LOOP_SCRIPT}" | head -1 | cut -d: -f1)
+  awk "NR>=${hec_line} && NR<=${main_line}" "${LOOP_SCRIPT}" | grep -q 'return 1'
+  # handler_result -ne 0 stops the loop
+  grep -qi 'handler_result.*-ne 0' "${LOOP_SCRIPT}"
+}
+
+@test "Terminal 3.3-34: loop script preflight check refuses to run on failed status" {
+  grep -qi 'status.*failed.*ERROR\|Pipeline previously failed\|failed.*Use --resume' "${LOOP_SCRIPT}"
+}
+
+@test "Terminal 3.3-35: loop script exit code dispatch matches orchestrator exit code protocol" {
+  # Verify all 4 exit codes are handled
+  grep -q '0)' "${LOOP_SCRIPT}"
+  grep -q '1)' "${LOOP_SCRIPT}"
+  grep -q '2)' "${LOOP_SCRIPT}"
+  grep -q '3)' "${LOOP_SCRIPT}"
+  grep -q '\*)' "${LOOP_SCRIPT}"
+}
