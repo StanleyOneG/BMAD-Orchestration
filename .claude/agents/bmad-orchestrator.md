@@ -44,6 +44,7 @@ Read the complete file `.bmad-orchestrator/state.yaml` and extract ALL fields:
 - `failures` — array of failure records
 - `currentRetries` — current retry count for the active stage
 - `reRouteOrigin` — validation stage that triggered upstream re-routing (or `null`/absent when not re-routing)
+- `checkpointFeedback` — user feedback text for checkpoint revision (optional, present only during feedback revision; absent/null when no feedback)
 
 ### 1.2 Determine What To Do
 
@@ -53,7 +54,30 @@ Based on the state file, determine your action. **Check terminal states first, t
 
 2. **If `status` is `failed`:** Pipeline previously failed. Exit with code 1.
 
-3. **If `status` is `paused`:** Pipeline was paused at a checkpoint gate and the user has resumed it. Update `status` to `running` via atomic write (Section 7.2), then proceed to Stage Execution (Section 2) for the current `currentStage`.
+3. **If `status` is `paused`:** Pipeline was paused at a checkpoint gate and the user has resumed it. Check if `checkpointFeedback` is present and non-null in state:
+
+   **a. If `checkpointFeedback` IS present (REVISION flow):**
+   - Identify the completed stage that triggered the pause (last entry in `completedStages`)
+   - Remove that stage from `completedStages` (it needs to be re-run with feedback)
+   - Set `currentStage` back to the completed stage (rewind)
+   - Append a checkpoint revision record to the `failures` array:
+     ```yaml
+     - stage: "<completed-stage>"
+       attempt: 0
+       error: "Checkpoint revision: <truncated feedback, max 200 chars>"
+       timestamp: "<ISO-8601>"
+       type: "checkpoint-revision"
+     ```
+   - Construct `{{failure_context}}` from the feedback: "Checkpoint feedback from user: [feedback text]. Revise the stage output to address this feedback."
+   - Clear `checkpointFeedback` from state after consuming it (set to null/remove field to prevent re-processing on next loop iteration)
+   - Set `status` to `running`
+   - Perform a **single** atomic state update (Section 7.2) with ALL the above changes together (status, rewind, failures entry, feedback cleared). Do NOT split into multiple writes — a crash between writes could leave state inconsistent with feedback unconsumed.
+   - Proceed to Stage Execution (Section 2) with the rewound `currentStage`
+
+   **b. If `checkpointFeedback` is NOT present (APPROVAL flow):**
+   - Set `status` to `running` via atomic write (Section 7.2)
+   - The `currentStage` already points to the next stage (set by Section 7.1 before pausing) — no advancement needed
+   - Proceed to Stage Execution (Section 2) for the current `currentStage`
 
 4. **If `currentStage` is `null`:** Routing is needed. Follow the Routing Protocol below, then proceed directly to Template Loading (Section 3) — do NOT exit after routing.
 

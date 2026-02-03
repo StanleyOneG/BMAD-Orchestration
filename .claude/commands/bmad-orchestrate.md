@@ -13,6 +13,9 @@ Extract from the input:
    - `--quick` → sets `route: quick` (skips auto-routing)
    - `--full` → sets `route: full` (skips auto-routing)
    - `--resume` → modifies existing state with `runType: resume` instead of creating new
+   - `--feedback "text"` → provides checkpoint feedback for revision (MUST be combined with `--resume`)
+
+If `--feedback` is used without `--resume`, fail immediately with: "Error: --feedback can only be used with --resume after a checkpoint pause."
 
 If no task description is provided and `--resume` is NOT set, fail with: "Error: Task description is required. Usage: /bmad-orchestrate \"Your task description\" [--checkpoint] [--quick] [--full] [--resume]"
 
@@ -33,8 +36,11 @@ If `--resume` is set:
    - `runType: resume`
    - `updatedAt:` current ISO-8601 timestamp
    - `status: running`
+   - If `--feedback` flag is present: set `checkpointFeedback: "<feedback text>"` in state
+   - If `--feedback` flag is NOT present: ensure `checkpointFeedback` is absent/null in state (do not write the field)
 4. Write the updated content to `.bmad-orchestrator/state.yaml.tmp`, then rename it to `.bmad-orchestrator/state.yaml` (atomic write)
-5. Output: "Resumed existing pipeline run. Run `.bmad-orchestrator/loop.sh` to continue execution."
+5. If `--feedback` was provided: Output: "Resumed pipeline with feedback. Run `.bmad-orchestrator/loop.sh` to continue."
+   If no `--feedback`: Output: "Resumed existing pipeline run. Run `.bmad-orchestrator/loop.sh` to continue execution."
 6. **STOP HERE** — do not proceed to Steps 3-5.
 
 ## Step 3: Artifact Overwrite Protection (fresh runs only)

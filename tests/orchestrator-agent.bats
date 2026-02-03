@@ -2085,3 +2085,151 @@ YAML
   grep -q 'paused' "${AGENT_FILE}"
   grep -q 'paused\|status: running' "${SLASH_CMD_FILE}"
 }
+
+# ──────────────────────────────────────────────
+# Story 4.2: Checkpoint Feedback & Revision
+# ──────────────────────────────────────────────
+
+# ── Task 4.1: Orchestrator agent feedback handling tests ──
+
+@test "Feedback 4.2-1: agent describes checkpointFeedback field in state file" {
+  grep -q 'checkpointFeedback' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-2: agent describes checkpointFeedback as optional field" {
+  grep -qi 'optional\|absent.*null\|null.*absent' "${AGENT_FILE}"
+  grep -q 'checkpointFeedback' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-3: agent describes feedback-aware resume from status: paused (revision flow)" {
+  grep -qi 'REVISION flow\|revision flow' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-4: agent describes rewinding currentStage on feedback" {
+  grep -qi 'rewind\|Set.*currentStage.*back\|currentStage.*back' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-5: agent describes removing completed stage from completedStages on feedback" {
+  grep -qi 'Remove.*completedStages\|remove.*from.*completedStages' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-6: agent describes injecting feedback into failure_context" {
+  grep -q 'failure_context.*feedback\|feedback.*failure_context\|Checkpoint feedback from user' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-7: agent describes clearing checkpointFeedback after consuming it" {
+  grep -qi 'Clear.*checkpointFeedback\|clear.*checkpointFeedback\|remove.*checkpointFeedback' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-8: agent describes approval flow (no feedback, advance normally)" {
+  grep -qi 'APPROVAL flow\|approval flow\|approval.*resume' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-9: agent describes re-pause at same gate after revision (via existing gate logic)" {
+  # AC #3: After revision completes, existing Section 8 gate logic re-pauses automatically
+  # The revision flow rewinds currentStage; after re-execution, Section 7.1 advances and
+  # Section 8 checks the completed stage against gates array — triggering re-pause.
+  # Verify the agent describes the rewind-to-stage-execution flow that leads back to Section 8.
+  grep -qi 'Proceed to Stage Execution.*rewound' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-10: agent describes checkpoint-revision type in failures array" {
+  grep -q 'checkpoint-revision' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-11: agent describes attempt: 0 for checkpoint revisions" {
+  grep -q 'attempt: 0\|attempt.*0' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-12: agent describes truncated feedback in error field (max 200 chars)" {
+  grep -qi 'truncat\|max 200' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-13: agent checkpoint revision record includes stage field" {
+  # Verify the failures array entry in the checkpoint revision record references the completed stage
+  grep -q 'stage:.*"<completed-stage>"' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-14: agent checkpoint revision record includes timestamp" {
+  grep -q 'timestamp.*ISO-8601\|ISO-8601.*timestamp' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-15: agent checkpoint revision record includes type field" {
+  grep -q 'type:.*checkpoint-revision\|type.*checkpoint-revision' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-16: agent identifies completed stage from last entry in completedStages" {
+  grep -qi 'last.*entry.*completedStages\|last.*completedStages' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-17: agent performs atomic state update after consuming feedback" {
+  # Verify atomic write (Section 7.2) is referenced in the feedback flow
+  grep -qi 'atomic.*state.*update\|Section 7\.2' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-18: agent constructs failure_context with user feedback text" {
+  grep -q 'Checkpoint feedback from user' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-19: agent prevents re-processing by clearing feedback from state" {
+  grep -qi 'prevent.*re-processing\|prevent.*reprocess' "${AGENT_FILE}"
+}
+
+# ── Task 4.2: Slash command feedback handling tests ──
+
+@test "Feedback 4.2-20: slash command describes --feedback flag" {
+  grep -q '\-\-feedback' "${SLASH_CMD_FILE}"
+}
+
+@test "Feedback 4.2-21: slash command describes --feedback with quoted text" {
+  grep -q '\-\-feedback.*text\|feedback.*text' "${SLASH_CMD_FILE}"
+}
+
+@test "Feedback 4.2-22: slash command describes checkpointFeedback field in state on resume" {
+  grep -q 'checkpointFeedback' "${SLASH_CMD_FILE}"
+}
+
+@test "Feedback 4.2-23: slash command describes --feedback requires --resume (error if used alone)" {
+  grep -qi '\-\-feedback.*can only be used with.*\-\-resume\|feedback.*only.*resume' "${SLASH_CMD_FILE}"
+}
+
+@test "Feedback 4.2-24: slash command describes approval resume (no feedback, no checkpointFeedback)" {
+  grep -qi 'NOT present\|absent.*null\|no.*feedback\|not.*present' "${SLASH_CMD_FILE}"
+}
+
+@test "Feedback 4.2-25: slash command outputs distinct message when feedback is provided on resume" {
+  grep -q 'Resumed pipeline with feedback' "${SLASH_CMD_FILE}"
+}
+
+@test "Feedback 4.2-26: slash command --feedback flag includes quoted text parameter" {
+  # Verify --feedback is documented with its "text" parameter format (distinct from 4.2-20 which just checks flag existence)
+  grep -q '\-\-feedback.*"text"' "${SLASH_CMD_FILE}"
+}
+
+@test "Feedback 4.2-27: slash command writes checkpointFeedback to state when --feedback present" {
+  grep -q 'checkpointFeedback.*feedback text\|checkpointFeedback:' "${SLASH_CMD_FILE}"
+}
+
+@test "Feedback 4.2-28: slash command ensures checkpointFeedback absent when no --feedback" {
+  grep -qi 'absent.*null\|NOT present.*checkpointFeedback\|not write the field' "${SLASH_CMD_FILE}"
+}
+
+# ── Cross-file consistency tests ──
+
+@test "Feedback 4.2-29: checkpointFeedback field referenced in both agent and slash command" {
+  grep -q 'checkpointFeedback' "${AGENT_FILE}"
+  grep -q 'checkpointFeedback' "${SLASH_CMD_FILE}"
+}
+
+@test "Feedback 4.2-30: checkpoint-revision type uses attempt 0 to distinguish from real failures" {
+  # Verify the agent documents both type AND attempt:0 together in the checkpoint revision record
+  # (distinct from 4.2-10 which only checks checkpoint-revision string exists)
+  grep -q 'attempt: 0' "${AGENT_FILE}"
+  grep -q 'type:.*checkpoint-revision' "${AGENT_FILE}"
+}
+
+@test "Feedback 4.2-31: agent and slash command both handle status: paused with feedback awareness" {
+  grep -q 'paused' "${AGENT_FILE}"
+  grep -q 'checkpointFeedback' "${AGENT_FILE}"
+  grep -q 'checkpointFeedback' "${SLASH_CMD_FILE}"
+}
