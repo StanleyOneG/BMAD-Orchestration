@@ -10,6 +10,7 @@ tools:
   - WebFetch
   - Write
   - Edit
+color: rose
 ---
 
 # analyst - Business Analyst 📊

@@ -8,6 +8,7 @@ tools:
   - Bash
   - Write
   - Edit
+color: red
 ---
 
 # quick flow solo dev - Quick Flow Solo Dev 🚀

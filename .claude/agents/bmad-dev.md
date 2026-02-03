@@ -8,6 +8,7 @@ tools:
   - Bash
   - Write
   - Edit
+color: pink
 ---
 
 # dev - Developer Agent 💻

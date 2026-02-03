@@ -9,6 +9,7 @@ tools:
   - Write
   - Edit
   - WebSearch
+color: blue
 ---
 
 # pm - Product Manager 📋

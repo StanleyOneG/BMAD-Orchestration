@@ -9,6 +9,7 @@ tools:
   - Write
   - Edit
   - WebSearch
+color: purple
 ---
 
 # architect - Architect 🏗️

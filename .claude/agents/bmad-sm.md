@@ -8,6 +8,7 @@ tools:
   - Bash
   - Write
   - Edit
+color: green
 ---
 
 # sm - Scrum Master 🏃

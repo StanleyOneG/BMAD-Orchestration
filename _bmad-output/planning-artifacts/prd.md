@@ -175,12 +175,15 @@ Stanley reads Story 3's file, identifies a missing dependency, installs it, runs
 ## Domain-Specific Requirements
 
 ### Execution Architecture -- Ralph Loop Pattern
+The Ralph Loop (named after Ralph Wiggum by Geoffrey Huntley, popularized by Ryan Carson) is a stateless autonomous agent pattern where a bash script is the outer control layer and the AI agent is a stateless worker. The core insight: durable state on the filesystem beats clever in-memory abstractions. The agent never controls the loop -- the script does.
+
 - The orchestrator is a shell script loop that repeatedly launches a fresh agent instance -- NOT a single long-running agent
 - Each agent instance reads a state tracking file from disk to determine current pipeline position
 - Agent executes the current workflow stage, updates the state file, and exits cleanly
 - Loop script detects the exit, checks state, and relaunches if pipeline is not complete
-- Eliminates context window degradation across long pipelines
+- Eliminates context window degradation across long pipelines -- each iteration starts with full, clean context
 - State file is the single source of truth for orchestration progress, not conversation memory
+- Anti-pattern: a single long-running agent session that hits context limits, compacts, loses information, and continues degraded -- the Ralph Loop prevents this by design
 
 ### State File Design
 - Tracks: task description, routing decision (Quick Flow vs Full Method), current stage, completed stages, failure history, mode (autonomous vs checkpoint)
@@ -304,8 +307,8 @@ Stanley reads Story 3's file, identifies a missing dependency, installs it, runs
 - FR30: User can approve a checkpoint to continue the pipeline
 
 ### Party Mode Integration
-- FR31: Orchestrator can detect when a task would benefit from brainstorming (based on task complexity or ambiguity signals)
-- FR32: Orchestrator can invoke Party Mode internally as part of the pipeline when brainstorming is warranted
+- FR31: Orchestrator can detect when a task would benefit from brainstorming based on concrete triggers: (a) task description mentions competing approaches or trade-offs, (b) task scope spans multiple architectural domains, (c) task contains undefined or ambiguous technical terms, or (d) task has unspecified elements that would normally benefit from human verification -- since autonomous mode has no human in the loop, Party Mode brainstorming substitutes for that input
+- FR32: Orchestrator can invoke Party Mode internally as part of the pipeline when any FR31 trigger is detected
 
 ### Git & Artifact Management
 - FR33: Orchestrator can verify it is running on a non-main/non-master branch before starting
