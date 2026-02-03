@@ -967,3 +967,133 @@ CODE_REVIEW_TEMPLATE=".bmad-orchestrator/templates/stage-code-review.md"
 @test "Template 2.5-29: code-review template explicitly requires fresh/new sub-agent launch" {
   grep -qi 'fresh.*sub-agent\|NEW.*FRESH.*sub-agent\|new.*Task tool invocation\|clean context window' "${CODE_REVIEW_TEMPLATE}"
 }
+
+# ──────────────────────────────────────────────
+# Story 2.6 Tests: Quick Spec Stage Template — stage-quick-spec.md (AC: #2, #5)
+# ──────────────────────────────────────────────
+
+QUICK_SPEC_TEMPLATE=".bmad-orchestrator/templates/stage-quick-spec.md"
+
+@test "Template 2.6-1: stage-quick-spec.md template file exists" {
+  [ -f "${QUICK_SPEC_TEMPLATE}" ]
+}
+
+@test "Template 2.6-2: quick-spec template has valid YAML frontmatter with stage: quick-spec" {
+  head -1 "${QUICK_SPEC_TEMPLATE}" | grep -q '^---$'
+  grep -q 'stage: quick-spec' "${QUICK_SPEC_TEMPLATE}"
+}
+
+@test "Template 2.6-3: quick-spec template frontmatter contains agent: bmad-quick-flow" {
+  grep -q 'agent: bmad-quick-flow' "${QUICK_SPEC_TEMPLATE}"
+}
+
+@test "Template 2.6-4: quick-spec template frontmatter contains command: TS" {
+  grep -q 'command: TS' "${QUICK_SPEC_TEMPLATE}"
+}
+
+@test "Template 2.6-5: quick-spec template frontmatter contains requiredArtifacts (empty array)" {
+  grep -q 'requiredArtifacts: \[\]' "${QUICK_SPEC_TEMPLATE}"
+}
+
+@test "Template 2.6-6: quick-spec template frontmatter contains producedArtifacts with tech-spec" {
+  grep -q 'producedArtifacts' "${QUICK_SPEC_TEMPLATE}"
+  grep -q 'tech-spec\.md' "${QUICK_SPEC_TEMPLATE}"
+}
+
+@test "Template 2.6-7: quick-spec template contains Context Injection section" {
+  grep -q '## Context Injection' "${QUICK_SPEC_TEMPLATE}"
+}
+
+@test "Template 2.6-8: quick-spec template contains Stage Instructions section" {
+  grep -q '## Stage Instructions' "${QUICK_SPEC_TEMPLATE}"
+}
+
+@test "Template 2.6-9: quick-spec template contains Verification section" {
+  grep -q '## Verification' "${QUICK_SPEC_TEMPLATE}"
+}
+
+@test "Template 2.6-10: quick-spec template contains {{task_description}} placeholder" {
+  grep -q '{{task_description}}' "${QUICK_SPEC_TEMPLATE}"
+}
+
+@test "Template 2.6-11: quick-spec template contains {{failure_context}} placeholder" {
+  grep -q '{{failure_context}}' "${QUICK_SPEC_TEMPLATE}"
+}
+
+@test "Template 2.6-12: quick-spec template contains {{mode_instructions}} placeholder" {
+  grep -q '{{mode_instructions}}' "${QUICK_SPEC_TEMPLATE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 2.6 Tests: Quick Dev Stage Template — stage-quick-dev.md (AC: #3, #5)
+# ──────────────────────────────────────────────
+
+QUICK_DEV_TEMPLATE=".bmad-orchestrator/templates/stage-quick-dev.md"
+
+@test "Template 2.6-13: stage-quick-dev.md template file exists" {
+  [ -f "${QUICK_DEV_TEMPLATE}" ]
+}
+
+@test "Template 2.6-14: quick-dev template has valid YAML frontmatter with stage: quick-dev" {
+  head -1 "${QUICK_DEV_TEMPLATE}" | grep -q '^---$'
+  grep -q 'stage: quick-dev' "${QUICK_DEV_TEMPLATE}"
+}
+
+@test "Template 2.6-15: quick-dev template frontmatter contains agent: bmad-quick-flow" {
+  grep -q 'agent: bmad-quick-flow' "${QUICK_DEV_TEMPLATE}"
+}
+
+@test "Template 2.6-16: quick-dev template frontmatter contains command: QD" {
+  grep -q 'command: QD' "${QUICK_DEV_TEMPLATE}"
+}
+
+@test "Template 2.6-17: quick-dev template frontmatter contains requiredArtifacts with tech-spec" {
+  grep -q 'requiredArtifacts' "${QUICK_DEV_TEMPLATE}"
+  grep -q 'tech-spec\.md' "${QUICK_DEV_TEMPLATE}"
+}
+
+@test "Template 2.6-18: quick-dev template frontmatter contains producedArtifacts with tech-spec" {
+  grep -q 'producedArtifacts' "${QUICK_DEV_TEMPLATE}"
+  grep -q 'tech-spec\.md' "${QUICK_DEV_TEMPLATE}"
+}
+
+@test "Template 2.6-19: quick-dev template contains Context Injection section" {
+  grep -q '## Context Injection' "${QUICK_DEV_TEMPLATE}"
+}
+
+@test "Template 2.6-20: quick-dev template contains Stage Instructions section" {
+  grep -q '## Stage Instructions' "${QUICK_DEV_TEMPLATE}"
+}
+
+@test "Template 2.6-21: quick-dev template contains Verification section" {
+  grep -q '## Verification' "${QUICK_DEV_TEMPLATE}"
+}
+
+@test "Template 2.6-22: quick-dev template contains {{task_description}} placeholder" {
+  grep -q '{{task_description}}' "${QUICK_DEV_TEMPLATE}"
+}
+
+@test "Template 2.6-23: quick-dev template contains {{failure_context}} placeholder" {
+  grep -q '{{failure_context}}' "${QUICK_DEV_TEMPLATE}"
+}
+
+@test "Template 2.6-24: quick-dev template contains {{mode_instructions}} placeholder" {
+  grep -q '{{mode_instructions}}' "${QUICK_DEV_TEMPLATE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 2.6 Tests: Quick Flow Routing Support in Orchestrator (AC: #1, #4)
+# ──────────────────────────────────────────────
+
+@test "QuickFlow 2.6-1: agent mentions quick-spec to quick-dev sequence" {
+  grep -q 'quick-spec.*quick-dev' "${AGENT_FILE}"
+}
+
+@test "QuickFlow 2.6-2: agent describes Quick Flow track for route: quick" {
+  grep -qi 'Quick Flow Track\|Quick Flow' "${AGENT_FILE}"
+  grep -q 'route: quick' "${AGENT_FILE}"
+}
+
+@test "QuickFlow 2.6-3: agent routes to quick-spec as first stage when route is quick" {
+  grep -q 'quick.*quick-spec\|route.*is.*quick.*currentStage.*quick-spec' "${AGENT_FILE}"
+}

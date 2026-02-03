@@ -48,8 +48,8 @@ development_status:
     2-2-implementation-readiness-stage-template: done
     2-3-sprint-planning-story-loop-initialization: done
     2-4-story-loop-iteration-create-story-template: done
-    2-5-dev-story-code-review-templates-with-git-commits: review
-    2-6-quick-flow-pipeline: backlog
+    2-5-dev-story-code-review-templates-with-git-commits: done
+    2-6-quick-flow-pipeline: done
     2-7-file-reference-detection-resume-capability: backlog
     epic-2-retrospective: optional
 
