@@ -799,3 +799,171 @@ CREATE_STORY_TEMPLATE=".bmad-orchestrator/templates/stage-create-story.md"
   grep -qi 'intentionally separate' "${AGENT_FILE}"
   grep -qi 'sprint-status\.yaml.*vocabulary\|status.*vocabulary.*sprint-status' "${AGENT_FILE}"
 }
+
+# ──────────────────────────────────────────────
+# Story 2.5 Tests: Dev Story Stage Template — stage-dev-story.md (AC: #1, #3, #4)
+# ──────────────────────────────────────────────
+
+DEV_STORY_TEMPLATE=".bmad-orchestrator/templates/stage-dev-story.md"
+
+@test "Template 2.5-1: stage-dev-story.md template file exists" {
+  [ -f "${DEV_STORY_TEMPLATE}" ]
+}
+
+@test "Template 2.5-2: dev-story template has valid YAML frontmatter with stage: dev-story" {
+  head -1 "${DEV_STORY_TEMPLATE}" | grep -q '^---$'
+  grep -q 'stage: dev-story' "${DEV_STORY_TEMPLATE}"
+}
+
+@test "Template 2.5-3: dev-story template frontmatter contains agent: bmad-dev" {
+  grep -q 'agent: bmad-dev' "${DEV_STORY_TEMPLATE}"
+}
+
+@test "Template 2.5-4: dev-story template frontmatter contains command: DS" {
+  grep -q 'command: DS' "${DEV_STORY_TEMPLATE}"
+}
+
+@test "Template 2.5-5: dev-story template frontmatter contains requiredArtifacts with {{story_key}}.md" {
+  grep -q 'requiredArtifacts' "${DEV_STORY_TEMPLATE}"
+  grep -q '{{story_key}}\.md' "${DEV_STORY_TEMPLATE}"
+}
+
+@test "Template 2.5-6: dev-story template frontmatter contains requiredArtifacts with architecture.md" {
+  grep -q 'requiredArtifacts' "${DEV_STORY_TEMPLATE}"
+  grep -q 'architecture\.md' "${DEV_STORY_TEMPLATE}"
+}
+
+@test "Template 2.5-7: dev-story template frontmatter contains producedArtifacts" {
+  grep -q 'producedArtifacts' "${DEV_STORY_TEMPLATE}"
+}
+
+@test "Template 2.5-8: dev-story template contains Context Injection section" {
+  grep -q '## Context Injection' "${DEV_STORY_TEMPLATE}"
+}
+
+@test "Template 2.5-9: dev-story template contains Stage Instructions section" {
+  grep -q '## Stage Instructions' "${DEV_STORY_TEMPLATE}"
+}
+
+@test "Template 2.5-10: dev-story template contains Verification section" {
+  grep -q '## Verification' "${DEV_STORY_TEMPLATE}"
+}
+
+@test "Template 2.5-11: dev-story template contains {{task_description}} placeholder" {
+  grep -q '{{task_description}}' "${DEV_STORY_TEMPLATE}"
+}
+
+@test "Template 2.5-12: dev-story template contains {{failure_context}} placeholder" {
+  grep -q '{{failure_context}}' "${DEV_STORY_TEMPLATE}"
+}
+
+@test "Template 2.5-13: dev-story template contains {{mode_instructions}} placeholder" {
+  grep -q '{{mode_instructions}}' "${DEV_STORY_TEMPLATE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 2.5 Tests: Code Review Stage Template — stage-code-review.md (AC: #2, #3, #5, #6)
+# ──────────────────────────────────────────────
+
+CODE_REVIEW_TEMPLATE=".bmad-orchestrator/templates/stage-code-review.md"
+
+@test "Template 2.5-14: stage-code-review.md template file exists" {
+  [ -f "${CODE_REVIEW_TEMPLATE}" ]
+}
+
+@test "Template 2.5-15: code-review template has valid YAML frontmatter with stage: code-review" {
+  head -1 "${CODE_REVIEW_TEMPLATE}" | grep -q '^---$'
+  grep -q 'stage: code-review' "${CODE_REVIEW_TEMPLATE}"
+}
+
+@test "Template 2.5-16: code-review template frontmatter contains agent: bmad-dev" {
+  grep -q 'agent: bmad-dev' "${CODE_REVIEW_TEMPLATE}"
+}
+
+@test "Template 2.5-17: code-review template frontmatter contains command: CR" {
+  grep -q 'command: CR' "${CODE_REVIEW_TEMPLATE}"
+}
+
+@test "Template 2.5-18: code-review template frontmatter contains requiredArtifacts with {{story_key}}.md" {
+  grep -q 'requiredArtifacts' "${CODE_REVIEW_TEMPLATE}"
+  grep -q '{{story_key}}\.md' "${CODE_REVIEW_TEMPLATE}"
+}
+
+@test "Template 2.5-19: code-review template frontmatter contains requiredArtifacts with architecture.md" {
+  grep -q 'requiredArtifacts' "${CODE_REVIEW_TEMPLATE}"
+  grep -q 'architecture\.md' "${CODE_REVIEW_TEMPLATE}"
+}
+
+@test "Template 2.5-20: code-review template frontmatter contains producedArtifacts" {
+  grep -q 'producedArtifacts' "${CODE_REVIEW_TEMPLATE}"
+}
+
+@test "Template 2.5-21: code-review template contains Context Injection section" {
+  grep -q '## Context Injection' "${CODE_REVIEW_TEMPLATE}"
+}
+
+@test "Template 2.5-22: code-review template contains Stage Instructions section" {
+  grep -q '## Stage Instructions' "${CODE_REVIEW_TEMPLATE}"
+}
+
+@test "Template 2.5-23: code-review template contains Verification section" {
+  grep -q '## Verification' "${CODE_REVIEW_TEMPLATE}"
+}
+
+@test "Template 2.5-24: code-review template contains {{task_description}} placeholder" {
+  grep -q '{{task_description}}' "${CODE_REVIEW_TEMPLATE}"
+}
+
+@test "Template 2.5-25: code-review template contains {{failure_context}} placeholder" {
+  grep -q '{{failure_context}}' "${CODE_REVIEW_TEMPLATE}"
+}
+
+@test "Template 2.5-26: code-review template contains {{mode_instructions}} placeholder" {
+  grep -q '{{mode_instructions}}' "${CODE_REVIEW_TEMPLATE}"
+}
+
+@test "Template 2.5-27: code-review template contains tri-state quality gate (PASS/CONCERNS/FAIL)" {
+  grep -q 'PASS' "${CODE_REVIEW_TEMPLATE}"
+  grep -q 'CONCERNS' "${CODE_REVIEW_TEMPLATE}"
+  grep -q 'FAIL' "${CODE_REVIEW_TEMPLATE}"
+}
+
+@test "Template 2.5-28: code-review template contains Quality Gate Interpretation section" {
+  grep -q '### Quality Gate Interpretation' "${CODE_REVIEW_TEMPLATE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 2.5 Tests: Phase Handling in Orchestrator Agent (AC: #1, #2, #5, #6, #7)
+# ──────────────────────────────────────────────
+
+@test "StoryLoop 2.5-1: agent describes phase transition from dev-story to code-review" {
+  grep -qi 'phase.*dev-story.*code-review\|dev-story.*to.*code-review\|Phase Transition.*Dev-Story.*Code-Review' "${AGENT_FILE}"
+}
+
+@test "StoryLoop 2.5-2: agent describes status update to implemented after dev-story" {
+  grep -qi 'status.*implemented\|implemented.*status' "${AGENT_FILE}"
+}
+
+@test "StoryLoop 2.5-3: agent describes status update to completed after code-review" {
+  grep -qi 'status.*completed\|completed.*status' "${AGENT_FILE}"
+  grep -qi 'code-review.*completed\|Code-Review.*Completed' "${AGENT_FILE}"
+}
+
+@test "StoryLoop 2.5-4: agent describes code-review failure re-routing back to dev-story phase" {
+  grep -qi 'revert.*phase.*dev-story\|phase.*back.*dev-story\|re-rout.*dev-story' "${AGENT_FILE}"
+  grep -qi 'NOT standard.*re-routing\|NOT standard upstream\|not standard failure' "${AGENT_FILE}"
+}
+
+@test "StoryLoop 2.5-5: agent describes git commit expectations during dev-story" {
+  grep -qi 'git.*commit.*dev-story\|dev.*sub-agent.*git.*commit\|Dev.*sub-agent.*commit' "${AGENT_FILE}"
+  grep -qi 'orchestrator.*NOT.*commit\|orchestrator.*verif.*commit\|does NOT make commits' "${AGENT_FILE}"
+}
+
+@test "StoryLoop 2.5-6: agent describes code-review requiring fresh/new Task sub-agent with clean context window" {
+  grep -qi 'fresh.*Task.*sub-agent\|NEW.*Task tool.*sub-agent\|FRESH.*Task tool\|fresh.*sub-agent\|NEW.*FRESH.*Task' "${AGENT_FILE}"
+  grep -qi 'clean context window\|clean.*context' "${AGENT_FILE}"
+}
+
+@test "Template 2.5-29: code-review template explicitly requires fresh/new sub-agent launch" {
+  grep -qi 'fresh.*sub-agent\|NEW.*FRESH.*sub-agent\|new.*Task tool invocation\|clean context window' "${CODE_REVIEW_TEMPLATE}"
+}

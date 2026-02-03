@@ -169,6 +169,44 @@ When a story in `storyLoop.epics[].stories[]` has `status: pending` and no `phas
 
 **Important:** During the story loop, `currentStage` remains set to the active story-level stage (e.g., `create-story`). It does NOT advance to `dev-story` at the pipeline level. The `storyLoop` object tracks which specific story is active and what phase it is in. The `currentStage` field reflects the current story-level stage being executed across the loop.
 
+### Phase Transition: Dev-Story to Code-Review
+
+After verification passes for a story's `dev-story` phase:
+
+1. Update the story's `phase` to `code-review` (next phase in the lifecycle)
+2. Update the story's `status` to `implemented`
+3. Perform atomic state update (Section 7.2)
+4. On next Ralph Loop iteration, the orchestrator sees `phase: code-review` and loads `stage-code-review.md`
+
+**Git Commit Expectations During Dev-Story:** The Dev sub-agent makes git commits to the current worktree branch during implementation. The orchestrator verifies that commits exist (via `git log`) but does NOT make commits itself. Per Boundary Rules (Section 9), sub-agents produce artifacts through their own workflows — this extends to git operations. The orchestrator only checks that new commits appeared on the current branch since the dev-story stage started.
+
+**Recording Pre-Dev-Story Commit Hash:** Before launching the dev-story sub-agent, the orchestrator should record the current `HEAD` commit hash (via `git rev-parse HEAD`) in the state file as `devStoryStartCommit`. This enables the code-review stage to compute an accurate `git diff` of only the commits made during dev-story. If the field is absent (e.g., on resume), the orchestrator should fall back to using `updatedAt` timestamp with `git log --since` to approximate the commit range.
+
+### Phase Transition: Code-Review to Completed
+
+After code-review verification passes (PASS or CONCERNS verdict):
+
+1. Update the story's `status` to `completed`
+2. Clear the story's `phase` (set to `null` or remove)
+3. Perform atomic state update (Section 7.2)
+4. Move to the next story in the story loop (or complete the epic if all stories are done)
+
+### Code-Review Failure Re-Routing
+
+When code-review returns a FAIL verdict, this is NOT standard failure handling (Section 6). Instead, the orchestrator re-routes within the same story's phase cycle:
+
+1. Revert the story's `phase` back to `dev-story` (NOT standard upstream re-routing — stays on the same story)
+2. The story's `status` stays as `implemented`
+3. Capture the specific review issues in `{{failure_context}}` for injection into the dev-story retry
+4. On next Ralph Loop iteration, the orchestrator sees `phase: dev-story` and loads `stage-dev-story.md` with the review feedback
+5. The Dev agent addresses the specific issues, then after dev-story completes again, phase advances back to `code-review`
+
+A story can cycle between `dev-story` and `code-review` multiple times until code review passes.
+
+### Code-Review Requires Fresh Sub-Agent
+
+**CRITICAL:** The code-review stage MUST be launched as a NEW, FRESH Task tool sub-agent with a CLEAN context window. The orchestrator must create a NEW Task tool invocation — never resume or reuse the dev-story sub-agent. The reviewer must approach the code cold, from disk artifacts and git diffs only, with zero carry-over from the implementation conversation. Sub-agent IDs are transient (per Section 9). This prevents confirmation bias and ensures genuine adversarial review.
+
 ### Quick Flow Track (`route: quick`)
 
 `quick-spec` → `quick-dev`

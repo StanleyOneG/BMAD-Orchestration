@@ -34,7 +34,7 @@
 
 development_status:
     # Epic 1: Single-Stage Autonomous Execution
-    epic-1: in-progress
+    epic-1: done
     1-1-slash-command-state-file-initialization: done
     1-2-ralph-loop-script: done
     1-3-orchestrator-agent-cold-start-state-management: done
@@ -48,7 +48,7 @@ development_status:
     2-2-implementation-readiness-stage-template: done
     2-3-sprint-planning-story-loop-initialization: done
     2-4-story-loop-iteration-create-story-template: done
-    2-5-dev-story-code-review-templates-with-git-commits: backlog
+    2-5-dev-story-code-review-templates-with-git-commits: review
     2-6-quick-flow-pipeline: backlog
     2-7-file-reference-detection-resume-capability: backlog
     epic-2-retrospective: optional
