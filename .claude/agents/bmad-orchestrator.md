@@ -46,15 +46,38 @@ Read the complete file `.bmad-orchestrator/state.yaml` and extract ALL fields:
 
 ### 1.2 Determine What To Do
 
-Based on the state file, determine your action:
+Based on the state file, determine your action. **Check terminal states first, then routing:**
 
-1. **If `currentStage` is `null`:** Routing has not happened yet. This means Story 1.4 (task routing logic) is needed. Exit with code 1 and log: "Routing not yet implemented — currentStage is null. Run routing first (Story 1.4)."
+1. **If `status` is `completed`:** Pipeline is already done. Exit with code 2.
 
-2. **If `status` is `completed`:** Pipeline is already done. Exit with code 2.
+2. **If `status` is `failed`:** Pipeline previously failed. Exit with code 1.
 
-3. **If `status` is `failed`:** Pipeline previously failed. Exit with code 1.
+3. **If `status` is `paused`:** Pipeline was paused at a checkpoint gate and the user has resumed it. Update `status` to `running` via atomic write (Section 7.2), then proceed to Stage Execution (Section 2) for the current `currentStage`.
 
-4. **If `status` is `paused`:** Pipeline was paused at a checkpoint gate and the user has resumed it. Update `status` to `running` via atomic write (Section 7.2), then proceed to Stage Execution (Section 2) for the current `currentStage`.
+4. **If `currentStage` is `null`:** Routing is needed. Follow the Routing Protocol below, then proceed directly to Template Loading (Section 3) — do NOT exit after routing.
+
+   **Routing Protocol:**
+
+   a. **Check for route override:** If `route` is already set to `quick` or `full` (not `null`), skip the routing analysis entirely — the user provided an override flag. Jump to step (c).
+
+   b. **Analyze task description (LLM routing decision):** If `route` is `null`, read the `task` field and determine the appropriate track using these guidelines:
+
+      - **Route to `quick` when the task shows these signals:** single-file changes, bug fixes, small utilities, well-defined narrow tasks, specific file references, styling fixes, typo corrections, simple refactors, configuration tweaks, documentation updates.
+      - **Route to `full` when the task shows these signals:** multi-component features, new systems or subsystems, architectural changes, ambiguous or broad scope, multi-domain integration, user-facing features requiring design, database schema changes, API design, features requiring multiple coordinated artifacts.
+
+      Make a judgment call. When uncertain, prefer `full` — it is safer to over-plan than to under-plan.
+
+   c. **Set first stage from route:**
+      - If `route` is `full` → set `currentStage` to `prd`
+      - If `route` is `quick` → set `currentStage` to `quick-spec`
+
+   d. **Perform atomic state update (Section 7.2):**
+      - Set `route` to the determined value (`quick` or `full`)
+      - Set `currentStage` to the first stage of the chosen track
+      - Set `updatedAt` to current ISO-8601 timestamp
+      - Preserve all other fields exactly as they are
+
+   e. **Continue execution:** After the atomic state update, proceed directly to Template Loading (Section 3) for the newly set `currentStage`. Do NOT exit with any code — routing and first stage execution happen in the same Ralph Loop iteration.
 
 5. **If `status` is `running` and `currentStage` is set:** Proceed to Stage Execution (Section 2).
 

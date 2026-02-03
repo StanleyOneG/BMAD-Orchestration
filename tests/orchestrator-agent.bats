@@ -288,3 +288,65 @@ AGENT_FILE=".claude/agents/bmad-orchestrator.md"
   grep -qi 'stories\[\]' "${AGENT_FILE}"
   grep -qi 'epic.*completed\|story.*completed' "${AGENT_FILE}"
 }
+
+# ──────────────────────────────────────────────
+# Story 1.4 Tests: Task Routing Logic (AC: #1-#5)
+# ──────────────────────────────────────────────
+
+@test "Routing 1.4-1: agent definition contains routing decision logic (not old placeholder)" {
+  # The old placeholder text should be gone
+  ! grep -q 'Routing not yet implemented' "${AGENT_FILE}"
+  ! grep -q 'Run routing first (Story 1.4)' "${AGENT_FILE}"
+  # Routing protocol should be present
+  grep -q 'Routing Protocol' "${AGENT_FILE}"
+}
+
+@test "Routing 1.4-2: Quick Flow routing guidelines are present" {
+  grep -qi 'single-file.*changes\|bug.*fix' "${AGENT_FILE}"
+  grep -qi 'small.*utilit\|narrow.*task\|well-defined' "${AGENT_FILE}"
+  grep -qi 'styling.*fix\|typo.*correction\|simple.*refactor' "${AGENT_FILE}"
+}
+
+@test "Routing 1.4-3: Full Method routing guidelines are present" {
+  grep -qi 'multi-component.*feature' "${AGENT_FILE}"
+  grep -qi 'architectural.*change' "${AGENT_FILE}"
+  grep -qi 'ambiguous.*scope\|broad.*scope' "${AGENT_FILE}"
+  grep -qi 'database.*schema\|API.*design' "${AGENT_FILE}"
+}
+
+@test "Routing 1.4-4: override bypass logic skips routing when route is already set" {
+  grep -qi 'route.*already.*set\|override\|skip.*routing.*analysis' "${AGENT_FILE}"
+  grep -qi 'not.*null\|quick.*or.*full' "${AGENT_FILE}"
+}
+
+@test "Routing 1.4-5: first stage mapping — full -> prd, quick -> quick-spec" {
+  grep -q 'full.*prd\|route.*is.*full.*currentStage.*prd' "${AGENT_FILE}"
+  grep -q 'quick.*quick-spec\|route.*is.*quick.*currentStage.*quick-spec' "${AGENT_FILE}"
+}
+
+@test "Routing 1.4-6: atomic state update after routing sets route, currentStage, updatedAt" {
+  grep -qi 'atomic.*state.*update\|Section 7\.2' "${AGENT_FILE}"
+  grep -q 'route.*determined.*value\|Set.*route' "${AGENT_FILE}"
+  grep -q 'currentStage.*first.*stage\|Set.*currentStage' "${AGENT_FILE}"
+  grep -q 'updatedAt.*ISO-8601\|Set.*updatedAt' "${AGENT_FILE}"
+}
+
+@test "Routing 1.4-7: after routing, proceeds to template loading — does NOT exit" {
+  grep -qi 'proceed.*Template Loading\|proceed.*Section 3' "${AGENT_FILE}"
+  grep -qi 'do NOT exit\|do not exit\|NOT exit' "${AGENT_FILE}"
+}
+
+@test "Routing 1.4-8: default to full when uncertain — safety heuristic present" {
+  grep -qi 'uncertain.*prefer.*full\|when uncertain.*full' "${AGENT_FILE}"
+}
+
+@test "Routing 1.4-9: terminal states checked before routing (failed/completed before null stage)" {
+  # completed and failed checks must appear BEFORE the currentStage null routing check
+  local completed_line failed_line routing_line
+  completed_line=$(grep -n 'status.*is.*completed\|completed.*Pipeline.*done' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  failed_line=$(grep -n 'status.*is.*failed\|failed.*Pipeline.*previously' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  routing_line=$(grep -n 'currentStage.*is.*null.*Routing is needed' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  [ -n "${completed_line}" ] && [ -n "${failed_line}" ] && [ -n "${routing_line}" ]
+  [ "${completed_line}" -lt "${routing_line}" ]
+  [ "${failed_line}" -lt "${routing_line}" ]
+}
