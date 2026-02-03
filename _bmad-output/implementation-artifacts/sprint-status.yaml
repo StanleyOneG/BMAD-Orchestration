@@ -50,7 +50,7 @@ development_status:
     2-4-story-loop-iteration-create-story-template: done
     2-5-dev-story-code-review-templates-with-git-commits: done
     2-6-quick-flow-pipeline: done
-    2-7-file-reference-detection-resume-capability: backlog
+    2-7-file-reference-detection-resume-capability: done
     epic-2-retrospective: optional
 
     # Epic 3: Failure Recovery & Artifact Safety

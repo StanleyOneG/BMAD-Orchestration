@@ -81,6 +81,30 @@ Based on the state file, determine your action. **Check terminal states first, t
 
 5. **If `status` is `running` and `currentStage` is set:** Proceed to Stage Execution (Section 2).
 
+### 1.3 File Reference Detection
+
+After determining what to do (Section 1.2) and before Template Loading (Section 3), scan the `task` field for file references and load them as additional context for sub-agents.
+
+**Steps:**
+
+1. Read the `task` field from `state.yaml`
+2. Scan the task text for file path patterns using these heuristics:
+   - **Explicit paths:** strings matching common file patterns like `path/to/file.ext`, `./relative/path`, `../parent/path`, `docs/something.md`
+   - **Quoted paths:** strings inside quotes that look like file paths
+   - **Common extensions:** `.md`, `.yaml`, `.yml`, `.json`, `.txt`, `.ts`, `.js`, `.py`, `.sh`, `.toml`, `.cfg`
+   - **Exclude:** URLs (`http://`, `https://`), email addresses (containing `@`), CLI flags (`--flag`)
+3. For each detected file reference:
+   - Attempt to read the file from disk
+   - **If file exists:** store its contents in a `fileContext` session variable (map of path → content)
+   - **If file does NOT exist:** log a warning message to the console (e.g., `"Warning: Referenced file not found: docs/feature-spec.md — continuing without it"`) but do NOT fail or halt
+4. Store the `fileContext` as a session variable only — **NOT persisted to `state.yaml`**. File contents are re-read on each cold start by re-parsing the `task` field. This keeps the state file lean and avoids staleness issues.
+
+### 1.4 Resume Behavior
+
+**Resume Behavior:** When `runType: resume`, the orchestrator's cold-start logic in Section 1.2 handles resume transparently. The slash command has already set `status: running` and preserved `currentStage` and `completedStages`. The orchestrator simply reads the current state and continues from `currentStage`. No special resume branching is needed in the orchestrator — the state file IS the resume mechanism.
+
+**Artifact Respect on Resume:** On resume runs, the orchestrator does not regenerate completed stages. `completedStages` tracks what's done, `currentStage` tracks what's next, and `storyLoop` tracks individual story progress. The orchestrator trusts these and picks up exactly where the previous run stopped.
+
 ---
 
 ## 2. Pipeline Stage Sequences
@@ -262,6 +286,7 @@ Use Claude Code's **Task tool** to launch the sub-agent specified in the templat
 - The `task` description from state.yaml
 - Any `failure_context` from previous failed attempts on this stage
 - Mode-specific instructions based on `mode` (autonomous vs checkpoint)
+- When `fileContext` is populated (from Section 1.3 File Reference Detection), include the referenced file contents as additional context alongside the task description. Format each entry as: `"Referenced file: {path}\n---\n{contents}\n---"` appended after `{{task_description}}`
 
 ### 4.2 Act as Expert Human User
 
@@ -423,12 +448,13 @@ This must be the very last Bash tool call you make. The `exit` command causes th
 ```
 1. Read .bmad-orchestrator/state.yaml
 2. Determine currentStage (or handle null/completed/failed/paused)
-3. Load template: .bmad-orchestrator/templates/stage-{currentStage}.md
-4. Parse frontmatter: agent, command, requiredArtifacts, producedArtifacts
-5. Pre-validate: verify all requiredArtifacts exist
-6. Launch sub-agent via Task tool
-7. Interact as expert human user until workflow completes
-8. Verify: check producedArtifacts exist, goal alignment, quality gate
-9. On pass: update state atomically, write status report
-10. Exit with correct code (0/1/2/3)
+3. Scan task for file references, load fileContext (Section 1.3)
+4. Load template: .bmad-orchestrator/templates/stage-{currentStage}.md
+5. Parse frontmatter: agent, command, requiredArtifacts, producedArtifacts
+6. Pre-validate: verify all requiredArtifacts exist
+7. Launch sub-agent via Task tool (include fileContext if populated)
+8. Interact as expert human user until workflow completes
+9. Verify: check producedArtifacts exist, goal alignment, quality gate
+10. On pass: update state atomically, write status report
+11. Exit with correct code (0/1/2/3)
 ```

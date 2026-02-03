@@ -1097,3 +1097,114 @@ QUICK_DEV_TEMPLATE=".bmad-orchestrator/templates/stage-quick-dev.md"
 @test "QuickFlow 2.6-3: agent routes to quick-spec as first stage when route is quick" {
   grep -q 'quick.*quick-spec\|route.*is.*quick.*currentStage.*quick-spec' "${AGENT_FILE}"
 }
+
+# ──────────────────────────────────────────────
+# Story 2.7 Tests: File Reference Detection in Orchestrator Agent (AC: #1, #2, #3)
+# ──────────────────────────────────────────────
+
+SLASH_CMD_FILE=".claude/commands/bmad-orchestrate.md"
+
+@test "FileRef 2.7-1: agent describes file reference detection from task description" {
+  grep -qi 'file.*reference.*detection\|file reference' "${AGENT_FILE}"
+  grep -qi 'task.*field\|task.*text\|task.*description' "${AGENT_FILE}"
+}
+
+@test "FileRef 2.7-2: agent mentions scanning for file paths in the task text" {
+  grep -qi 'scan.*task.*file.*path\|file.*path.*pattern\|scan.*task.*text' "${AGENT_FILE}"
+}
+
+@test "FileRef 2.7-3: agent describes handling when referenced file exists (read and include as context)" {
+  grep -qi 'file.*exists.*store\|file exists.*content\|If file exists' "${AGENT_FILE}"
+  grep -qi 'fileContext' "${AGENT_FILE}"
+}
+
+@test "FileRef 2.7-4: agent describes handling when referenced file does NOT exist (warning, continue)" {
+  grep -qi 'file.*not.*exist.*warning\|not found.*warning\|Warning.*Referenced file not found\|does NOT exist.*warning\|NOT exist.*log.*warning' "${AGENT_FILE}"
+  grep -qi 'do NOT fail\|not fail\|continuing without' "${AGENT_FILE}"
+}
+
+@test "FileRef 2.7-5: agent describes including file context when launching sub-agents" {
+  grep -qi 'fileContext.*populated\|fileContext.*sub-agent\|file.*context.*alongside\|Referenced file.*path' "${AGENT_FILE}"
+}
+
+@test "FileRef 2.7-6: agent mentions NOT persisting file contents to state.yaml" {
+  grep -qi 'NOT.*persisted.*state\.yaml\|not.*persist.*state\|session variable only' "${AGENT_FILE}"
+}
+
+@test "FileRef 2.7-7: agent describes excluding URLs from file reference detection" {
+  grep -qi 'http://\|https://\|Exclude.*URL\|URL.*exclude' "${AGENT_FILE}"
+}
+
+@test "FileRef 2.7-8: agent describes excluding CLI flags from file reference detection" {
+  grep -qi 'CLI.*flag\|--flag\|Exclude.*flag' "${AGENT_FILE}"
+}
+
+@test "FileRef 2.7-9: agent describes excluding email addresses from file reference detection" {
+  grep -qi 'email.*address\|containing.*@\|Exclude.*email' "${AGENT_FILE}"
+}
+
+@test "FileRef 2.7-10: agent describes common file extensions for detection" {
+  grep -qi '\.md.*\.yaml\|\.json.*\.txt\|common.*extension' "${AGENT_FILE}"
+}
+
+@test "FileRef 2.7-11: fileContext injection documented in Section 4 (Sub-Agent Interaction)" {
+  local s4_line fc_line
+  s4_line=$(grep -n '## 4\. Sub-Agent' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  fc_line=$(grep -n 'fileContext.*populated' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  [ -n "${s4_line}" ] && [ -n "${fc_line}" ]
+  [ "${fc_line}" -gt "${s4_line}" ]
+}
+
+@test "FileRef 2.7-12: file reference detection section appears after Section 1.2 and before Section 2" {
+  local fr_line s2_line
+  fr_line=$(grep -n 'File Reference Detection' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  s2_line=$(grep -n '## 2\. Pipeline Stage' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  [ -n "${fr_line}" ] && [ -n "${s2_line}" ]
+  [ "${fr_line}" -lt "${s2_line}" ]
+}
+
+# ──────────────────────────────────────────────
+# Story 2.7 Tests: Resume Behavior Documentation in Orchestrator Agent (AC: #4, #6)
+# ──────────────────────────────────────────────
+
+@test "Resume 2.7-1: agent describes resume behavior (transparent via state file)" {
+  grep -qi 'Resume Behavior\|resume.*transparent\|state file IS the resume mechanism\|state file.*IS.*resume' "${AGENT_FILE}"
+}
+
+@test "Resume 2.7-2: agent describes artifact respect on resume (completed stages honored)" {
+  grep -qi 'Artifact Respect on Resume\|artifact.*respect.*resume\|does not regenerate completed stages\|completedStages.*tracks' "${AGENT_FILE}"
+}
+
+@test "Resume 2.7-3: agent mentions orchestrator trusts state and picks up where stopped" {
+  grep -qi 'picks up exactly where\|trusts these\|picks up.*where.*stopped\|picks up.*previous.*run' "${AGENT_FILE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 2.7 Tests: Slash Command Resume Handling (AC: #4, #5)
+# ──────────────────────────────────────────────
+
+@test "Resume 2.7-4: slash command describes --resume flag handling" {
+  grep -qi '\-\-resume' "${SLASH_CMD_FILE}"
+  grep -qi 'resume' "${SLASH_CMD_FILE}"
+}
+
+@test "Resume 2.7-5: slash command reads existing state.yaml on resume" {
+  grep -qi 'Read.*existing.*state\.yaml\|existing.*state\.yaml.*exist\|state\.yaml.*exists' "${SLASH_CMD_FILE}"
+}
+
+@test "Resume 2.7-6: slash command sets runType: resume on resume" {
+  grep -q 'runType: resume\|runType.*resume' "${SLASH_CMD_FILE}"
+}
+
+@test "Resume 2.7-7: slash command sets status: running on resume" {
+  grep -q 'status: running' "${SLASH_CMD_FILE}"
+}
+
+@test "Resume 2.7-8: slash command fails with error when no state.yaml exists for resume" {
+  grep -qi 'No existing state\.yaml found\|Cannot resume without a previous run\|No.*state\.yaml.*Cannot resume' "${SLASH_CMD_FILE}"
+}
+
+@test "Resume 2.7-9: slash command uses atomic write for resume update" {
+  grep -q 'state\.yaml\.tmp' "${SLASH_CMD_FILE}"
+  grep -qi 'rename\|mv.*state\.yaml\|atomic write' "${SLASH_CMD_FILE}"
+}
