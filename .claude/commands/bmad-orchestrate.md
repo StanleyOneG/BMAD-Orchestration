@@ -39,12 +39,10 @@ If `--resume` is set:
 
 ## Step 3: Artifact Overwrite Protection (fresh runs only)
 
-Before creating anything, check:
-1. Does `.bmad-orchestrator/state.yaml` already exist?
-2. Does `_bmad-output/` contain any artifacts (any files beyond what was there before orchestration)?
+Before creating anything, check if `.bmad-orchestrator/state.yaml` already exists. This file is the definitive signal that a previous orchestrator run exists.
 
-If EITHER condition is true, **STOP** and output:
-> **Error:** Existing artifacts detected. Use `--resume` to continue a previous run, or remove existing artifacts first.
+If it exists, **STOP** and output:
+> **Error:** Existing orchestrator run detected (`.bmad-orchestrator/state.yaml` exists). Use `--resume` to continue the previous run, or delete `.bmad-orchestrator/state.yaml` first.
 
 ## Step 4: Create Directory & State File
 
