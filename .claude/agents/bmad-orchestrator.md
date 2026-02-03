@@ -43,6 +43,7 @@ Read the complete file `.bmad-orchestrator/state.yaml` and extract ALL fields:
 - `storyLoop` — story loop tracking object (or `null`)
 - `failures` — array of failure records
 - `currentRetries` — current retry count for the active stage
+- `reRouteOrigin` — validation stage that triggered upstream re-routing (or `null`/absent when not re-routing)
 
 ### 1.2 Determine What To Do
 
@@ -382,6 +383,45 @@ When verification fails or an error occurs:
 
 4. **If `currentRetries` >= `maxRetries`:** Set `status: failed`. Exit code 1 (stop).
 
+### 6.5 Upstream Re-Routing
+
+When a validation stage (`readiness`) returns FAIL, instead of simple same-stage retry, the orchestrator analyzes the failure report to identify which upstream stage produced the artifact with the gap, and re-routes to that stage with targeted remediation instructions.
+
+**Trigger Condition:** Verification FAIL on the `readiness` stage (Section 5.5 fires). Before proceeding with normal retry logic (Section 6 steps 3–4), check whether upstream re-routing applies. This section applies only to the `readiness` validation stage. Code-review FAIL is handled by the intra-story Code-Review Failure Re-Routing pattern (Section 2).
+
+**Upstream Re-Routing Flow:**
+
+1. **Read the readiness report:** Load `_bmad-output/planning-artifacts/implementation-readiness-report.md` from disk.
+
+2. **Identify upstream stage:** Parse the readiness report's specific findings to map gaps to the originating stage:
+   - PRD findings → route to `prd`
+   - Architecture findings → route to `architecture`
+   - Epics/Stories findings → route to `epics-stories`
+   - If findings span multiple stages, prioritize the **earliest** stage in the Full Method pipeline sequence (`prd` before `architecture` before `epics-stories`). Fixing upstream artifacts cascades fixes downstream.
+
+3. **Append re-route entry to `failures` array:** Use a distinct format that includes the re-route target:
+   ```yaml
+   - stage: "<validation-stage>"
+     attempt: <attempt-number>
+     error: "<single-line error summary from readiness report>"
+     timestamp: "<ISO-8601>"
+     reRoutedTo: "<upstream-stage>"
+   ```
+
+4. **Set `reRouteOrigin`:** Add field to state: `reRouteOrigin: "<validation-stage>"` (e.g., `reRouteOrigin: "readiness"`). This tells Section 7.1 to route back to the validation stage after the upstream fix instead of advancing normally.
+
+5. **Set `currentStage` to the identified upstream stage:** e.g., `currentStage: "architecture"`.
+
+6. **Construct targeted remediation `{{failure_context}}`:** Extract specific failure findings from the readiness report and format them as targeted remediation instructions. The sub-agent must receive instructions like "Revise architecture to address: connection pooling not specified" — NOT a full re-run of the workflow from scratch.
+
+7. **Increment `currentRetries`:** Re-routing counts against `maxRetries` to prevent infinite re-routing loops. Each re-route attempt (including the subsequent re-validation) counts as attempts against the original stage's retry limit.
+
+8. **Exit code 0** (loop relaunches). On next cold start, the orchestrator reads state, sees `currentStage` set to the upstream stage, and loads its template with the remediation failure context.
+
+**Failure Chain Readability:** The `failures` array captures the full chain — original failure → re-route decision (with `reRoutedTo`) → upstream attempt result → re-validation result. Each entry is self-contained with stage, attempt, error, and timestamp. Re-route entries additionally include the `reRoutedTo` field to indicate the upstream stage targeted.
+
+**Important:** Re-routing is distinct from the Code-Review Failure Re-Routing pattern (Section 2). Code-review re-routing is intra-story (stays within the same story's phase cycle). Upstream re-routing is inter-stage (crosses pipeline stage boundaries back to planning stages).
+
 ---
 
 ## 7. State Update Protocol
@@ -392,10 +432,12 @@ After successfully completing a stage and passing verification:
 
 Build the complete updated state YAML with:
 
-- `currentStage` advanced to the next stage in the pipeline sequence
-- Completed stage appended to `completedStages` array
+- **Check `reRouteOrigin` first:** If `reRouteOrigin` is set in state, the current stage was an upstream revision triggered by a previous validation failure. Instead of advancing to the next stage in the pipeline sequence, set `currentStage` back to the value of `reRouteOrigin` (e.g., `readiness`) to re-run the validation that originally failed. Do NOT clear `reRouteOrigin` yet — it is cleared only after the re-validation stage completes successfully (see below). Do NOT reset `currentRetries` — the re-validation attempt must continue counting against `maxRetries`. Do NOT append the upstream stage to `completedStages` if it already exists there (avoid duplicates during re-routing).
+- **If `reRouteOrigin` is set AND the current stage matches `reRouteOrigin` (re-validation just completed successfully):** Clear `reRouteOrigin` (remove from state or set to `null`). Then advance `currentStage` to the next stage in the normal pipeline sequence after the validation stage. Reset `currentRetries` to 0.
+- **If `reRouteOrigin` is NOT set:** Follow normal advancement — `currentStage` advanced to the next stage in the pipeline sequence.
+- Completed stage appended to `completedStages` array (skip if already present — can occur during upstream re-routing)
 - `updatedAt` set to current ISO-8601 timestamp
-- `currentRetries` reset to 0 (successful completion resets retry count)
+- `currentRetries` reset to 0 (successful completion resets retry count — except during re-routing; see `reRouteOrigin` bullet above)
 - All other fields preserved as-is
 
 ### 7.2 Atomic Write (CRITICAL)

@@ -48,7 +48,8 @@ If this is a retry attempt (failure context is provided above), focus on address
 
 - If the readiness report was not saved: Ensure the PM agent completes the full workflow including the save step
 - If previous concerns were identified in failure context: Provide explicit remediation guidance targeting those specific concerns when the review asks about them
-- If upstream re-routing feedback is present: Explain which upstream artifact was revised and what changed, so the review can validate the corrections
+- If upstream re-routing feedback is present: Explain which upstream artifact was revised and what changed, so the review can validate the corrections. The orchestrator re-routed to the upstream stage with targeted remediation instructions (per Section 6.5 of orchestrator agent). Focus the review on validating that the specific gaps identified in the previous readiness report have been addressed.
+- If this is a re-validation after upstream re-routing: The failure context will describe which upstream artifact was revised and what specific gaps were addressed. Pay particular attention to the areas flagged in the previous failure — confirm the upstream revision resolved the identified gaps.
 - If the workflow stalled: Use YOLO mode earlier to push through interaction-heavy sections
 
 ## Verification
@@ -82,7 +83,7 @@ This is a validation stage with a tri-state quality gate:
 
 - **PASS:** All planning artifacts are complete and aligned. Proceed to `sprint-planning`
 - **CONCERNS:** Planning artifacts are mostly complete but have minor gaps. Proceed to `sprint-planning` but log the specific concern details as warnings. Capture concern details in the state for downstream visibility
-- **FAIL:** Significant gaps or misalignment found in planning artifacts. Trigger failure handling (Section 6 of orchestrator agent). Capture the specific concerns and failures from the readiness report in the failure error summary for downstream re-routing to the appropriate upstream stage
+- **FAIL:** Significant gaps or misalignment found in planning artifacts. Trigger failure handling (Section 6 of orchestrator agent). FAIL triggers upstream re-routing (Section 6.5) — the orchestrator analyzes this report to identify which upstream stage produced the artifact with the gap, then re-routes to that stage with targeted remediation instructions rather than simply retrying readiness
 
 ### Verification Outcome
 

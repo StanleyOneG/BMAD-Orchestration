@@ -56,7 +56,7 @@ development_status:
     # Epic 3: Failure Recovery & Artifact Safety
     epic-3: in-progress
     3-1-stage-failure-detection-retry-logic: done
-    3-2-upstream-re-routing-remediation: backlog
+    3-2-upstream-re-routing-remediation: done
     3-3-terminal-failure-artifact-protection: backlog
     epic-3-retrospective: optional
 

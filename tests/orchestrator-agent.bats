@@ -1405,3 +1405,193 @@ LOOP_SCRIPT=".bmad-orchestrator/loop.sh"
 @test "Failure 3.1-34: agent handles empty filter result when no failures match currentStage" {
   grep -qi 'no entries match.*empty string\|If no entries match' "${AGENT_FILE}"
 }
+
+# ──────────────────────────────────────────────
+# Story 3.2 Tests: Upstream Re-Routing Logic in Orchestrator Agent (AC: #1, #2, #3)
+# ──────────────────────────────────────────────
+
+@test "ReRoute 3.2-1: agent describes upstream re-routing as distinct from same-stage retry" {
+  grep -qi 'Upstream Re-Routing' "${AGENT_FILE}"
+  grep -qi 'instead of simple.*retry\|instead of.*same-stage retry' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-2: agent describes upstream stage identification from readiness failure" {
+  grep -qi 'Identify upstream stage\|identify.*upstream.*stage' "${AGENT_FILE}"
+  grep -qi 'readiness report.*findings\|parse.*readiness.*report\|readiness.*report.*specific.*findings' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-3: agent maps PRD findings to prd stage" {
+  grep -qi 'PRD findings.*prd\|PRD.*route.*prd' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-4: agent maps Architecture findings to architecture stage" {
+  grep -qi 'Architecture findings.*architecture\|Architecture.*route.*architecture' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-5: agent maps Epics/Stories findings to epics-stories stage" {
+  grep -qi 'Epics.*findings.*epics-stories\|Epics.*route.*epics-stories' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-6: agent prioritizes earliest upstream stage when findings span multiple stages" {
+  grep -qi 'earliest.*stage.*pipeline\|prioritize.*earliest' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-7: agent describes re-routing to upstream stage (currentStage set back)" {
+  grep -qi 'currentStage.*upstream stage\|Set.*currentStage.*to.*identified upstream\|currentStage.*to the identified upstream' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-8: agent describes remediation context construction from failure report" {
+  grep -qi 'targeted remediation.*failure_context\|remediation.*{{failure_context}}\|targeted remediation instructions' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-9: agent describes targeted instructions (not full re-run)" {
+  grep -qi 'NOT a full re-run\|not.*full re-run\|NOT.*full.*re-run.*workflow' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-10: Section 6.5 appears between Section 6 and Section 7" {
+  local s6_line s65_line s7_line
+  s6_line=$(grep -n '## 6\. Failure' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  s65_line=$(grep -n '### 6\.5 Upstream Re-Routing' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  s7_line=$(grep -n '## 7\. State Update' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  [ -n "${s6_line}" ] && [ -n "${s65_line}" ] && [ -n "${s7_line}" ]
+  [ "${s6_line}" -lt "${s65_line}" ]
+  [ "${s65_line}" -lt "${s7_line}" ]
+}
+
+# ──────────────────────────────────────────────
+# Story 3.2 Tests: Re-Validation After Upstream Revision (AC: #4)
+# ──────────────────────────────────────────────
+
+@test "ReRoute 3.2-11: agent describes reRouteOrigin field usage in state" {
+  grep -qi 'reRouteOrigin' "${AGENT_FILE}"
+  grep -qi 'reRouteOrigin.*validation.*stage\|reRouteOrigin.*readiness' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-12: agent describes routing back to validation stage after upstream fix" {
+  grep -qi 'reRouteOrigin.*set.*currentStage.*back\|set.*currentStage.*back.*reRouteOrigin\|currentStage.*back to.*value.*reRouteOrigin' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-13: agent describes clearing reRouteOrigin on re-validation success" {
+  grep -qi 'clear.*reRouteOrigin\|Clear.*reRouteOrigin\|reRouteOrigin.*clear\|remove.*reRouteOrigin' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-14: Section 7.1 checks reRouteOrigin before advancing stage" {
+  local s71_line rro_line
+  s71_line=$(grep -n '### 7\.1 Construct Updated State' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  rro_line=$(grep -n 'reRouteOrigin' "${AGENT_FILE}" | grep -v '6\.5\|6_5' | tail -1 | cut -d: -f1)
+  [ -n "${s71_line}" ] && [ -n "${rro_line}" ]
+  [ "${rro_line}" -gt "${s71_line}" ]
+}
+
+@test "ReRoute 3.2-15: agent describes re-validation advancing normally after reRouteOrigin cleared" {
+  grep -qi 'advance.*currentStage.*next.*stage.*pipeline.*after.*validation\|advance.*normal.*pipeline' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-16: agent handles recursive re-routing (re-validation also fails)" {
+  grep -qi 'maxRetries.*prevent.*infinite\|prevent infinite re-routing\|infinite re-routing loop' "${AGENT_FILE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 3.2 Tests: Failure Chain Tracking (AC: #5)
+# ──────────────────────────────────────────────
+
+@test "ReRoute 3.2-17: agent describes re-route entry format with reRoutedTo field" {
+  grep -q 'reRoutedTo' "${AGENT_FILE}"
+  grep -qi 'reRoutedTo.*upstream.*stage\|reRoutedTo.*<upstream' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-18: re-route entry includes stage, attempt, error, timestamp, and reRoutedTo" {
+  grep -q 'stage:' "${AGENT_FILE}"
+  grep -q 'attempt:' "${AGENT_FILE}"
+  grep -q 'error:' "${AGENT_FILE}"
+  grep -q 'timestamp:' "${AGENT_FILE}"
+  grep -q 'reRoutedTo:' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-19: agent describes full chain: failure -> re-route -> upstream attempt -> re-validation" {
+  grep -qi 'original failure.*re-route\|failure.*re-route decision.*upstream' "${AGENT_FILE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 3.2 Tests: Re-Routing Interaction with Existing Failure Handling (AC: #1, #3, #4, #5)
+# ──────────────────────────────────────────────
+
+@test "ReRoute 3.2-20: re-routing respects maxRetries (counts as an attempt)" {
+  grep -qi 're-routing counts against.*maxRetries\|Re-routing counts against\|counts against.*maxRetries' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-21: re-routing increments currentRetries" {
+  grep -qi 'Increment.*currentRetries.*re-rout\|re-rout.*counts.*attempts\|re-route attempt.*counts' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-22: terminal failure triggers when maxRetries exhausted including re-route attempts" {
+  grep -qi 'prevent infinite re-routing\|infinite re-routing loop\|maxRetries.*prevent' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-23: re-routing uses exit code 0 (loop relaunches)" {
+  grep -qi 'Exit code 0.*loop relaunches\|exit code 0.*relaunches\|Exit code 0' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-24: re-routing is distinct from code-review failure re-routing" {
+  grep -qi 'distinct from.*Code-Review Failure Re-Routing\|distinct from the Code-Review' "${AGENT_FILE}"
+  grep -qi 'inter-stage\|inter.stage' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-25: agent reads readiness report from disk for re-routing analysis" {
+  grep -qi 'implementation-readiness-report\.md.*disk\|Load.*implementation-readiness-report\|Read.*readiness report' "${AGENT_FILE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 3.2 Tests: Stage-Readiness Template Re-Routing Support (AC: #1, #3)
+# ──────────────────────────────────────────────
+
+READINESS_TEMPLATE=".bmad-orchestrator/templates/stage-readiness.md"
+
+@test "ReRoute 3.2-26: readiness template Failure Recovery mentions upstream re-routing" {
+  grep -qi 'upstream re-routing\|re-routed.*upstream\|upstream.*stage.*revised' "${READINESS_TEMPLATE}"
+}
+
+@test "ReRoute 3.2-27: readiness template Quality Gate mentions FAIL triggers upstream re-routing" {
+  grep -qi 'FAIL.*triggers.*upstream re-routing\|FAIL.*upstream re-routing\|FAIL triggers upstream' "${READINESS_TEMPLATE}"
+}
+
+@test "ReRoute 3.2-28: readiness template references Section 6.5 of orchestrator agent" {
+  grep -qi 'Section 6\.5' "${READINESS_TEMPLATE}"
+}
+
+@test "ReRoute 3.2-29: readiness template mentions re-validation context for upstream re-routing" {
+  grep -qi 're-validation after upstream re-routing\|upstream.*revised\|upstream artifact was revised' "${READINESS_TEMPLATE}"
+}
+
+@test "ReRoute 3.2-30: readiness template describes targeted remediation (not full re-run)" {
+  grep -qi 'targeted remediation\|targeted.*instructions\|specific gaps' "${READINESS_TEMPLATE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 3.2 Tests: Code Review Fixes (Issues 1, 2, 3, 5, 6)
+# ──────────────────────────────────────────────
+
+@test "ReRoute 3.2-31: Section 1.1 lists reRouteOrigin as a state field" {
+  local s11_line s12_line
+  s11_line=$(grep -n '### 1\.1 Read State File' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  s12_line=$(grep -n '### 1\.2 Determine What To Do' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  local rro_line
+  rro_line=$(awk "NR>=${s11_line} && NR<=${s12_line}" "${AGENT_FILE}" | grep -n 'reRouteOrigin' | head -1 | cut -d: -f1)
+  [ -n "${rro_line}" ]
+}
+
+@test "ReRoute 3.2-32: Section 6.5 explicitly scopes to readiness stage only (not code-review)" {
+  grep -qi 'This section applies only to the.*readiness.*validation stage\|applies only to.*readiness' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-33: Section 7.1 addresses completedStages duplicate avoidance during re-routing" {
+  grep -qi 'skip if already present\|avoid duplicates\|already exists.*completedStages\|duplicate.*re-routing' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-34: Section 7.1 preserves currentRetries during re-routing (no reset on upstream completion)" {
+  grep -qi 'do NOT reset.*currentRetries\|NOT reset currentRetries\|must continue counting.*maxRetries' "${AGENT_FILE}"
+}
+
+@test "ReRoute 3.2-35: readiness template does NOT reference reRouteOrigin field directly" {
+  ! grep -q 'reRouteOrigin' "${READINESS_TEMPLATE}"
+}
