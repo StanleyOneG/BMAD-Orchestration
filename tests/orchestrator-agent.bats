@@ -594,3 +594,106 @@ READINESS_TEMPLATE=".bmad-orchestrator/templates/stage-readiness.md"
 @test "Template 2.2-15: readiness template references sprint-planning as next stage" {
   grep -q 'sprint-planning' "${READINESS_TEMPLATE}"
 }
+
+# ──────────────────────────────────────────────
+# Story 2.3 Tests: Sprint Planning Stage Template — stage-sprint-planning.md (AC: #3, #4, #5)
+# ──────────────────────────────────────────────
+
+SPRINT_TEMPLATE=".bmad-orchestrator/templates/stage-sprint-planning.md"
+
+@test "Template 2.3-1: stage-sprint-planning.md template file exists" {
+  [ -f "${SPRINT_TEMPLATE}" ]
+}
+
+@test "Template 2.3-2: sprint-planning template has valid YAML frontmatter with stage: sprint-planning" {
+  head -1 "${SPRINT_TEMPLATE}" | grep -q '^---$'
+  grep -q 'stage: sprint-planning' "${SPRINT_TEMPLATE}"
+}
+
+@test "Template 2.3-3: sprint-planning template frontmatter contains agent: bmad-sm" {
+  grep -q 'agent: bmad-sm' "${SPRINT_TEMPLATE}"
+}
+
+@test "Template 2.3-4: sprint-planning template frontmatter contains command: SP" {
+  grep -q 'command: SP' "${SPRINT_TEMPLATE}"
+}
+
+@test "Template 2.3-5: sprint-planning template frontmatter contains requiredArtifacts with epics.md and architecture.md" {
+  grep -q 'requiredArtifacts' "${SPRINT_TEMPLATE}"
+  grep -q 'epics\.md' "${SPRINT_TEMPLATE}"
+  grep -q 'architecture\.md' "${SPRINT_TEMPLATE}"
+}
+
+@test "Template 2.3-6: sprint-planning template frontmatter contains producedArtifacts with sprint-status.yaml" {
+  grep -q 'producedArtifacts' "${SPRINT_TEMPLATE}"
+  grep -q 'sprint-status\.yaml' "${SPRINT_TEMPLATE}"
+}
+
+@test "Template 2.3-7: sprint-planning template contains Context Injection section" {
+  grep -q '## Context Injection' "${SPRINT_TEMPLATE}"
+}
+
+@test "Template 2.3-8: sprint-planning template contains Stage Instructions section" {
+  grep -q '## Stage Instructions' "${SPRINT_TEMPLATE}"
+}
+
+@test "Template 2.3-9: sprint-planning template contains Verification section" {
+  grep -q '## Verification' "${SPRINT_TEMPLATE}"
+}
+
+@test "Template 2.3-10: sprint-planning template contains {{task_description}} placeholder" {
+  grep -q '{{task_description}}' "${SPRINT_TEMPLATE}"
+}
+
+@test "Template 2.3-11: sprint-planning template contains {{failure_context}} placeholder" {
+  grep -q '{{failure_context}}' "${SPRINT_TEMPLATE}"
+}
+
+@test "Template 2.3-12: sprint-planning template contains {{mode_instructions}} placeholder" {
+  grep -q '{{mode_instructions}}' "${SPRINT_TEMPLATE}"
+}
+
+# ──────────────────────────────────────────────
+# Story 2.3 Tests: storyLoop Population Logic in Orchestrator Agent (AC: #1, #2)
+# ──────────────────────────────────────────────
+
+@test "StoryLoop 2.3-1: agent definition mentions storyLoop population or building" {
+  grep -qi 'storyLoop.*populat\|populat.*storyLoop\|build.*storyLoop\|storyLoop.*build' "${AGENT_FILE}"
+}
+
+@test "StoryLoop 2.3-2: agent definition handles storyLoop being null or empty" {
+  grep -qi 'storyLoop.*null\|null.*storyLoop\|storyLoop.*empty\|empty.*storyLoop' "${AGENT_FILE}"
+}
+
+@test "StoryLoop 2.3-3: agent definition references parsing epic files for storyLoop construction" {
+  grep -qi 'epic.*file\|epic.*pars\|pars.*epic' "${AGENT_FILE}"
+  grep -qi 'storyLoop' "${AGENT_FILE}"
+}
+
+@test "StoryLoop 2.3-4: agent definition specifies atomic write after storyLoop population" {
+  grep -qi 'atomic.*state\|state\.yaml\.tmp' "${AGENT_FILE}"
+  grep -qi 'storyLoop' "${AGENT_FILE}"
+}
+
+@test "StoryLoop 2.3-5: storyLoop population subsection appears before Template Loading section" {
+  local pop_line tl_line
+  pop_line=$(grep -n 'storyLoop Population' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  tl_line=$(grep -n '## 3\. Template Loading' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  [ -n "${pop_line}" ] && [ -n "${tl_line}" ]
+  [ "${pop_line}" -lt "${tl_line}" ]
+}
+
+@test "StoryLoop 2.3-6: storyLoop population subsection is inside Section 2 (Pipeline Stage Sequences)" {
+  local s2_line pop_line s3_line
+  s2_line=$(grep -n '## 2\. Pipeline Stage' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  pop_line=$(grep -n 'storyLoop Population' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  s3_line=$(grep -n '## 3\. Template Loading' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  [ -n "${s2_line}" ] && [ -n "${pop_line}" ] && [ -n "${s3_line}" ]
+  [ "${s2_line}" -lt "${pop_line}" ]
+  [ "${pop_line}" -lt "${s3_line}" ]
+}
+
+@test "StoryLoop 2.3-7: storyLoop population defines deterministic ID slugification rules" {
+  grep -qi 'slugif\|deterministic.*ID\|slug.*rule' "${AGENT_FILE}"
+  grep -qi 'epic-.*{N}\|story.*slug' "${AGENT_FILE}"
+}

@@ -103,6 +103,46 @@ The stages execute in this exact order:
 
 During story loop stages, `currentStage` remains set to the active story-level stage (e.g., `dev-story`). The `storyLoop` object tracks which specific story is being worked on.
 
+### storyLoop Population (Pre-Step Before Sprint Planning)
+
+When `currentStage` is `sprint-planning` and `storyLoop` is `null` or empty, the orchestrator must populate the storyLoop structure BEFORE loading the sprint-planning template or launching any sub-agent. This is an orchestrator-internal responsibility, not a sub-agent task.
+
+**Trigger Condition:** `currentStage == "sprint-planning"` AND (`storyLoop` is `null` OR `storyLoop.epics` is empty)
+
+**Skip Condition:** If `storyLoop` is already populated (e.g., resume scenario), skip population and proceed directly to Template Loading (Section 3).
+
+**Population Steps:**
+
+1. Glob for epic files on disk: `_bmad-output/planning-artifacts/*epic*.md`
+2. Read each discovered epic file completely
+3. Parse the document structure to extract all epics and stories:
+   - `## Epic N: Title` sections become epic entries
+   - `### Story N.M: Title` subsections within each epic become story entries
+4. Generate deterministic IDs using these slugification rules:
+   - **Epic IDs:** `"epic-{N}"` where `{N}` is the zero-padded epic number from the heading (e.g., `## Epic 1: ...` → `"epic-01"`, `## Epic 12: ...` → `"epic-12"`)
+   - **Story IDs:** `"{N}-{M}-{slug}"` where `{N}` is the epic number, `{M}` is the story number, and `{slug}` is the story title lowercased, spaces replaced with hyphens, non-alphanumeric characters (except hyphens) removed, consecutive hyphens collapsed (e.g., `### Story 2.3: Sprint Planning & Story Loop` → `"2-3-sprint-planning-story-loop"`)
+   - IDs must be stable across runs — same input always produces the same ID
+5. Build the `storyLoop` structure:
+   ```yaml
+   storyLoop:
+     epics:
+       - id: "epic-01"
+         status: "pending"
+         stories:
+           - id: "story-01-slug"
+             status: "pending"
+           - id: "story-02-slug"
+             status: "pending"
+       - id: "epic-02"
+         status: "pending"
+         stories:
+           - id: "story-01-slug"
+             status: "pending"
+   ```
+5. Perform atomic state update (Section 7.2): write to `state.yaml.tmp` then rename to `state.yaml`
+
+**Important:** This population step completes entirely before the sprint-planning template is loaded. It is a synchronous pre-step, not part of the template interaction flow.
+
 ### Quick Flow Track (`route: quick`)
 
 `quick-spec` → `quick-dev`
