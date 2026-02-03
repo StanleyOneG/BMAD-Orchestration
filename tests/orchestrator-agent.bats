@@ -2233,3 +2233,147 @@ YAML
   grep -q 'checkpointFeedback' "${AGENT_FILE}"
   grep -q 'checkpointFeedback' "${SLASH_CMD_FILE}"
 }
+
+# ──────────────────────────────────────────────
+# Story 4.3: Party Mode Integration
+# Tests for Party Mode trigger detection, invocation, result handling
+# ──────────────────────────────────────────────
+
+# ── Trigger Detection (AC: #1, #2, #3, #4) ──
+
+@test "PartyMode 4.3-1: agent describes Trigger A — competing approaches detection" {
+  grep -qi 'Trigger A.*Competing Approaches' "${AGENT_FILE}"
+  grep -qi 'alternatives\|trade-offs\|should we use X or Y' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-2: agent describes Trigger B — multi-domain scope detection" {
+  grep -qi 'Trigger B.*Multi-Domain Scope' "${AGENT_FILE}"
+  grep -qi 'multiple architectural domains' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-3: agent describes Trigger C — ambiguous terms detection" {
+  grep -qi 'Trigger C.*Ambiguous Terms' "${AGENT_FILE}"
+  grep -qi 'undefined.*vague\|vague.*domain-specific' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-4: agent describes Trigger D — unspecified elements in autonomous mode" {
+  grep -qi 'Trigger D.*Unspecified Elements.*Autonomous' "${AGENT_FILE}"
+  grep -qi 'mode.*autonomous.*human input/verification' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-5: agent describes Trigger D exception — not applicable in checkpoint mode" {
+  grep -qi 'Trigger D.*does NOT apply in checkpoint mode\|Trigger D specifically does NOT apply in checkpoint' "${AGENT_FILE}"
+}
+
+# ── Invocation Mechanism (AC: #5) ──
+
+@test "PartyMode 4.3-6: agent describes instructing sub-agent to invoke Party Mode (NOT invoking directly)" {
+  grep -qi 'orchestrator does NOT directly invoke Party Mode.*instructs the sub-agent' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-7: agent describes specific question/decision point in invocation" {
+  grep -qi 'invoke Party Mode to brainstorm:.*specific question or decision point' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-8: agent describes once-per-interaction limit on Party Mode" {
+  grep -qi 'at most ONCE per sub-agent interaction' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-9: agent describes bundling multiple triggers into single invocation" {
+  grep -qi 'bundle.*single Party Mode invocation.*multiple questions' "${AGENT_FILE}"
+}
+
+# ── Result Handling (AC: #6) ──
+
+@test "PartyMode 4.3-10: agent describes evaluating brainstorming consensus" {
+  grep -qi 'evaluates whether the brainstorming produced a clear consensus' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-11: agent describes continuing workflow after clear consensus" {
+  grep -qi 'consensus is clear.*continues the normal workflow' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-12: agent describes making judgment call when consensus is unclear" {
+  grep -qi 'consensus is unclear.*judgment call' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-13: agent describes no re-invocation on same decision" {
+  grep -qi 'does NOT re-invoke Party Mode on the same decision' "${AGENT_FILE}"
+}
+
+# ── Judgment Guidelines ──
+
+@test "PartyMode 4.3-14: agent describes LLM judgment for trigger significance" {
+  grep -qi 'LLM judgment to assess.*significant\|LLM judgment to assess significance' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-15: agent describes Party Mode as non-automatic (judgment-based)" {
+  grep -qi 'Triggers are NOT automatic' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-16: agent describes meaningful impact threshold for invocation" {
+  grep -qi 'meaningful architectural.*design.*implementation impact' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-17: agent describes judgment-based not rule-based trigger detection" {
+  grep -qi 'judgment-based.*not rule-based' "${AGENT_FILE}"
+}
+
+# ── Section Structure and Cross-References ──
+
+@test "PartyMode 4.3-18: agent has Section 4.4 for Party Mode Trigger Detection" {
+  grep -q '### 4\.4 Party Mode Trigger Detection' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-19: Section 4.2 cross-references Section 4.4 for detailed trigger criteria" {
+  grep -qi 'Section 4\.4.*trigger criteria\|Section 4\.4.*invocation protocol' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-20: agent describes invocation via resume message to sub-agent" {
+  grep -qi 'resume message to the sub-agent.*Party Mode instruction' "${AGENT_FILE}"
+  grep -qi 'next resume message.*includes a Party Mode instruction\|resume message to the sub-agent includes' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-21: agent describes architecture boundary compliance for Party Mode" {
+  grep -qi 'architecture boundary.*orchestrator drives sub-agents.*sub-agents execute workflows' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-22: agent describes Trigger A with pros/cons comparisons" {
+  grep -qi 'pros/cons comparisons' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-23: agent describes Trigger B with cross-domain conflict risk" {
+  grep -qi 'cross-domain conflicts' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-24: agent describes Trigger C with real-time and scalable examples" {
+  grep -qi '"real-time".*latency\|"scalable".*scale targets' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-25: agent describes Trigger D substitutes brainstorming for human input" {
+  grep -qi 'Party Mode brainstorming substitutes for.*human input' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-26: agent describes checkpoint mode — prefer pausing at gate for human" {
+  grep -qi 'prefer pausing at the gate.*human decide' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-27: agent describes Triggers A-C still apply in checkpoint mode between gates" {
+  grep -qi 'Triggers A.*C still apply in checkpoint mode' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-28: agent describes preventing brainstorming loops via once-per-interaction limit" {
+  grep -qi 'ONCE per sub-agent interaction.*prevent brainstorming loops' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-29: agent describes invocation includes relevant BMAD agents" {
+  grep -qi 'relevant BMAD agents.*architect.*analyst.*PM' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-30: agent describes incorporate consensus into response and continue" {
+  grep -qi 'incorporate the consensus into your response and continue' "${AGENT_FILE}"
+}
+
+@test "PartyMode 4.3-31: agent describes non-trigger example (tabs vs spaces) for judgment threshold" {
+  grep -qi 'tabs vs spaces.*do NOT warrant Party Mode' "${AGENT_FILE}"
+}

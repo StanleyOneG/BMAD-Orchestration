@@ -351,7 +351,7 @@ When the sub-agent returns output at interaction points (menus, questions, promp
 - **Select menu options** that match the current stage goal
 - **Answer workflow questions** using the `task` description and available artifacts from previously completed stages
 - **Provide context** from completed stages — read artifacts in `_bmad-output/` for reference
-- **Trigger Party Mode** when you detect competing approaches, ambiguity, or trade-offs that benefit from multi-perspective brainstorming
+- **Trigger Party Mode** when you detect competing approaches, ambiguity, or trade-offs that benefit from multi-perspective brainstorming — see **Section 4.4** for detailed trigger criteria and invocation protocol
 
 ### 4.3 Resume Pattern
 
@@ -361,6 +361,44 @@ When the sub-agent returns output at interaction points (menus, questions, promp
 4. Resume the same sub-agent (same agent ID) with your response
 5. Repeat until the sub-agent workflow completes
 6. One Ralph Loop iteration = one complete pipeline stage with ALL back-and-forth
+
+### 4.4 Party Mode Trigger Detection
+
+During sub-agent interaction (Section 4.2–4.3 Resume Pattern), the orchestrator evaluates whether the current decision point would benefit from multi-perspective brainstorming via Party Mode. Triggers are **judgment-based, not rule-based** — the orchestrator uses LLM judgment to assess significance, not keyword matching or regex detection.
+
+#### Trigger Categories
+
+- **Trigger A — Competing Approaches:** Sub-agent output presents alternatives, trade-offs, "should we use X or Y?", pros/cons comparisons, or explicitly asks the orchestrator to choose between options
+- **Trigger B — Multi-Domain Scope:** The task description or sub-agent interaction spans multiple architectural domains (e.g., frontend + backend + database, or authentication + authorization + API design) and a single-domain decision could create cross-domain conflicts
+- **Trigger C — Ambiguous Terms:** Sub-agent output or task description uses undefined, vague, or domain-specific technical terms that could be interpreted multiple ways (e.g., "real-time" without latency specification, "scalable" without defining scale targets)
+- **Trigger D — Unspecified Elements (Autonomous Only):** During `mode: autonomous`, the sub-agent asks a question or presents an element that would normally require human input/verification — since no human is in the loop, Party Mode brainstorming substitutes for that human input
+
+#### Judgment Guidelines
+
+Triggers are NOT automatic — the orchestrator uses LLM judgment to assess whether the trigger is significant enough to warrant brainstorming. Minor trade-offs (e.g., "tabs vs spaces") do NOT warrant Party Mode. Only invoke when the decision has meaningful architectural, design, or implementation impact.
+
+#### Checkpoint Mode Exception
+
+When running in `mode: checkpoint`, the orchestrator should prefer pausing at the gate to let the human decide rather than auto-invoking Party Mode. **Trigger D specifically does NOT apply in checkpoint mode** — the human IS in the loop. Triggers A–C still apply in checkpoint mode when they occur between gates.
+
+#### Invocation Protocol
+
+When a trigger is detected and judged significant, the orchestrator's next resume message to the sub-agent includes a Party Mode instruction. The orchestrator does NOT directly invoke Party Mode itself — it instructs the sub-agent to do so. This aligns with the architecture boundary: orchestrator drives sub-agents, sub-agents execute workflows (Section 9).
+
+The invocation format: the orchestrator tells the sub-agent: "Before proceeding, invoke Party Mode to brainstorm: [specific question or decision point]. Include perspectives from relevant BMAD agents (architect, analyst, PM, etc.). After Party Mode completes, incorporate the consensus into your response and continue."
+
+#### Once-Per-Interaction Limit
+
+Party Mode should be invoked at most ONCE per sub-agent interaction to prevent brainstorming loops. If multiple triggers are detected, bundle them into a single Party Mode invocation with multiple questions.
+
+#### Result Handling
+
+After the sub-agent returns with Party Mode results, the orchestrator evaluates whether the brainstorming produced a clear consensus:
+
+- **If consensus is clear:** the orchestrator acknowledges the result and continues the normal workflow interaction, letting the sub-agent proceed with the consensus approach
+- **If consensus is unclear or conflicting:** the orchestrator makes a judgment call as the expert human user, picks the approach that best aligns with the task description and existing architecture, and instructs the sub-agent to proceed with that choice
+
+The orchestrator does NOT re-invoke Party Mode on the same decision — one round of brainstorming per decision point is sufficient.
 
 ---
 
