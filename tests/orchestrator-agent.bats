@@ -350,3 +350,59 @@ AGENT_FILE=".claude/agents/bmad-orchestrator.md"
   [ "${completed_line}" -lt "${routing_line}" ]
   [ "${failed_line}" -lt "${routing_line}" ]
 }
+
+# ──────────────────────────────────────────────
+# Story 1.5 Tests: First Stage Template — stage-prd.md (AC: #1, #5)
+# ──────────────────────────────────────────────
+
+TEMPLATE_FILE=".bmad-orchestrator/templates/stage-prd.md"
+
+@test "Template 1.5-1: stage-prd.md template file exists" {
+  [ -f "${TEMPLATE_FILE}" ]
+}
+
+@test "Template 1.5-2: template has valid YAML frontmatter with stage: prd" {
+  head -1 "${TEMPLATE_FILE}" | grep -q '^---$'
+  grep -q 'stage: prd' "${TEMPLATE_FILE}"
+}
+
+@test "Template 1.5-3: template frontmatter contains agent: bmad-pm" {
+  grep -q 'agent: bmad-pm' "${TEMPLATE_FILE}"
+}
+
+@test "Template 1.5-4: template frontmatter contains command: CP" {
+  grep -q 'command: CP' "${TEMPLATE_FILE}"
+}
+
+@test "Template 1.5-5: template frontmatter contains requiredArtifacts: []" {
+  grep -q 'requiredArtifacts: \[\]' "${TEMPLATE_FILE}"
+}
+
+@test "Template 1.5-6: template frontmatter contains producedArtifacts with prd.md" {
+  grep -q 'producedArtifacts' "${TEMPLATE_FILE}"
+  grep -q 'prd\.md' "${TEMPLATE_FILE}"
+}
+
+@test "Template 1.5-7: template contains Context Injection section" {
+  grep -q '## Context Injection' "${TEMPLATE_FILE}"
+}
+
+@test "Template 1.5-8: template contains Stage Instructions section" {
+  grep -q '## Stage Instructions' "${TEMPLATE_FILE}"
+}
+
+@test "Template 1.5-9: template contains Verification section" {
+  grep -q '## Verification' "${TEMPLATE_FILE}"
+}
+
+@test "Template 1.5-10: template contains {{task_description}} placeholder" {
+  grep -q '{{task_description}}' "${TEMPLATE_FILE}"
+}
+
+@test "Template 1.5-11: template contains {{failure_context}} placeholder" {
+  grep -q '{{failure_context}}' "${TEMPLATE_FILE}"
+}
+
+@test "Template 1.5-12: template contains {{mode_instructions}} placeholder" {
+  grep -q '{{mode_instructions}}' "${TEMPLATE_FILE}"
+}

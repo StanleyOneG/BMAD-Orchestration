@@ -44,7 +44,7 @@ development_status:
     1-2-ralph-loop-script: done
     1-3-orchestrator-agent-cold-start-state-management: done
     1-4-task-routing-logic: done
-    1-5-first-stage-template-end-to-end-proof: backlog
+    1-5-first-stage-template-end-to-end-proof: done
     epic-1-retrospective: optional
 
     # Epic 2: Full Pipeline & Quick Flow Orchestration
