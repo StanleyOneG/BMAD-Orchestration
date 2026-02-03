@@ -521,3 +521,76 @@ EPICS_TEMPLATE=".bmad-orchestrator/templates/stage-epics-stories.md"
 @test "Template 2.1-24: epics-stories template contains {{mode_instructions}} placeholder" {
   grep -q '{{mode_instructions}}' "${EPICS_TEMPLATE}"
 }
+
+# ──────────────────────────────────────────────
+# Story 2.2 Tests: Implementation Readiness Stage Template — stage-readiness.md (AC: #1, #2)
+# ──────────────────────────────────────────────
+
+READINESS_TEMPLATE=".bmad-orchestrator/templates/stage-readiness.md"
+
+@test "Template 2.2-1: stage-readiness template exists" {
+  [ -f "${READINESS_TEMPLATE}" ]
+}
+
+@test "Template 2.2-2: readiness template has valid YAML frontmatter with stage: readiness" {
+  head -1 "${READINESS_TEMPLATE}" | grep -q '^---$'
+  grep -q 'stage: readiness' "${READINESS_TEMPLATE}"
+}
+
+@test "Template 2.2-3: readiness template frontmatter contains agent: bmad-pm" {
+  grep -q 'agent: bmad-pm' "${READINESS_TEMPLATE}"
+}
+
+@test "Template 2.2-4: readiness template frontmatter contains command: IR" {
+  grep -q 'command: IR' "${READINESS_TEMPLATE}"
+}
+
+@test "Template 2.2-5: readiness template frontmatter contains requiredArtifacts with prd.md, architecture.md, and epics.md" {
+  grep -q 'requiredArtifacts' "${READINESS_TEMPLATE}"
+  grep -q 'prd\.md' "${READINESS_TEMPLATE}"
+  grep -q 'architecture\.md' "${READINESS_TEMPLATE}"
+  grep -q 'epics\.md' "${READINESS_TEMPLATE}"
+}
+
+@test "Template 2.2-6: readiness template frontmatter contains producedArtifacts with implementation-readiness-report.md" {
+  grep -q 'producedArtifacts' "${READINESS_TEMPLATE}"
+  grep -q 'implementation-readiness-report\.md' "${READINESS_TEMPLATE}"
+}
+
+@test "Template 2.2-7: readiness template contains Context Injection section" {
+  grep -q '## Context Injection' "${READINESS_TEMPLATE}"
+}
+
+@test "Template 2.2-8: readiness template contains Stage Instructions section" {
+  grep -q '## Stage Instructions' "${READINESS_TEMPLATE}"
+}
+
+@test "Template 2.2-9: readiness template contains Verification section" {
+  grep -q '## Verification' "${READINESS_TEMPLATE}"
+}
+
+@test "Template 2.2-10: readiness template contains {{task_description}} placeholder" {
+  grep -q '{{task_description}}' "${READINESS_TEMPLATE}"
+}
+
+@test "Template 2.2-11: readiness template contains {{failure_context}} placeholder" {
+  grep -q '{{failure_context}}' "${READINESS_TEMPLATE}"
+}
+
+@test "Template 2.2-12: readiness template contains {{mode_instructions}} placeholder" {
+  grep -q '{{mode_instructions}}' "${READINESS_TEMPLATE}"
+}
+
+@test "Template 2.2-13: readiness template contains tri-state quality gate (PASS/CONCERNS/FAIL)" {
+  grep -q 'PASS' "${READINESS_TEMPLATE}"
+  grep -q 'CONCERNS' "${READINESS_TEMPLATE}"
+  grep -q 'FAIL' "${READINESS_TEMPLATE}"
+}
+
+@test "Template 2.2-14: readiness template contains Quality Gate Interpretation section" {
+  grep -q '### Quality Gate Interpretation' "${READINESS_TEMPLATE}"
+}
+
+@test "Template 2.2-15: readiness template references sprint-planning as next stage" {
+  grep -q 'sprint-planning' "${READINESS_TEMPLATE}"
+}
