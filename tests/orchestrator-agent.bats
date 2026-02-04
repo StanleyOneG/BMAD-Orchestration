@@ -2518,3 +2518,462 @@ YAML
 @test "StatusLog 5.1-28: agent describes checkpoint summary append to status report unchanged" {
   grep -qi 'Append to status report.*PAUSED (CHECKPOINT)' "${AGENT_FILE}"
 }
+
+# ══════════════════════════════════════════════════════════
+# Story 5.2 Tests: Final Status Report & Failure Details (AC: #1-#5)
+# ══════════════════════════════════════════════════════════
+
+# ──────────────────────────────────────────────
+# 5.2 Task 11.1: COMPLETED summary format (AC: #1)
+# ──────────────────────────────────────────────
+
+@test "FinalReport 5.2-1: loop script COMPLETED summary includes Total Stages Run" {
+  grep -q 'Total Stages Run' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-2: loop script COMPLETED summary includes Elapsed Time" {
+  grep -q 'Elapsed Time' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-3: loop script COMPLETED summary includes Artifact Inventory section" {
+  grep -q 'Artifact Inventory' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-4: loop script COMPLETED summary includes Completed Stages" {
+  grep -q 'Completed Stages' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-5: loop script generates artifact inventory for COMPLETED status" {
+  grep -q 'generate_artifact_inventory' "${LOOP_SCRIPT}"
+}
+
+# ──────────────────────────────────────────────
+# 5.2 Task 11.2: FAILED summary format (AC: #2)
+# ──────────────────────────────────────────────
+
+@test "FinalReport 5.2-6: loop script FAILED summary includes Failed At field" {
+  grep -q 'Failed At' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-7: loop script FAILED summary includes Error field" {
+  grep -q '\*\*Error:\*\*' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-8: loop script FAILED summary includes Attempts field" {
+  grep -q '\*\*Attempts:\*\*' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-9: loop script FAILED summary includes Recovery instructions" {
+  grep -q 'Recovery.*bmad-orchestrate.*--resume' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-10: loop script FAILED summary includes story ID when in story loop" {
+  grep -q 'read_story_context' "${LOOP_SCRIPT}"
+  grep -q 'story_context' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-11: loop script FAILED summary includes Re-routed to when applicable" {
+  grep -q 'Re-routed to' "${LOOP_SCRIPT}"
+}
+
+# ──────────────────────────────────────────────
+# 5.2 Task 11.3: PAUSED summary format (AC: #3)
+# ──────────────────────────────────────────────
+
+@test "FinalReport 5.2-12: loop script PAUSED summary includes Paused At field" {
+  grep -q 'Paused At' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-13: loop script PAUSED summary includes Completed Stages" {
+  # PAUSED case in write_status_report includes Completed Stages
+  grep -q 'PAUSED' "${LOOP_SCRIPT}"
+  grep -q 'Completed Stages' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-14: loop script PAUSED summary includes Resume instructions" {
+  grep -q 'Resume.*Review artifacts' "${LOOP_SCRIPT}"
+}
+
+# ──────────────────────────────────────────────
+# 5.2 Task 11.4: CRASHED summary format (AC: #4)
+# ──────────────────────────────────────────────
+
+@test "FinalReport 5.2-15: loop script CRASHED summary includes Exit Code field" {
+  grep -q '\*\*Exit Code:\*\*' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-16: loop script CRASHED summary includes Agent terminated unexpectedly" {
+  grep -q 'Agent terminated unexpectedly' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-17: loop script CRASHED summary includes Recovery instructions" {
+  # The CRASHED case in write_status_report includes Recovery
+  grep -q 'CRASHED' "${LOOP_SCRIPT}"
+  grep -q 'Recovery' "${LOOP_SCRIPT}"
+}
+
+# ──────────────────────────────────────────────
+# 5.2 Task 11.5: Artifact inventory generation (AC: #1, #5)
+# ──────────────────────────────────────────────
+
+@test "FinalReport 5.2-18: loop script has generate_artifact_inventory function" {
+  grep -q 'generate_artifact_inventory()' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-19: artifact inventory maps planning-artifacts/prd to prd stage" {
+  grep -q 'prd\*.md.*stage="prd"\|planning-artifacts/prd.*prd' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-20: artifact inventory maps architecture files to architecture stage" {
+  grep -q 'architecture\*.md.*architecture\|planning-artifacts/architecture' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-21: artifact inventory maps epic files to epics-stories stage" {
+  grep -q 'epic.*epics-stories' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-22: artifact inventory maps sprint-status.yaml to sprint-planning stage" {
+  grep -q 'sprint-status.yaml.*sprint-planning' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-23: artifact inventory maps story files to create-story stage" {
+  grep -q 'create-story' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-24: generate_artifact_inventory produces correct output format" {
+  # Behavioral test: create mock _bmad-output directory
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  mkdir -p "${tmp_dir}/_bmad-output/planning-artifacts"
+  mkdir -p "${tmp_dir}/_bmad-output/implementation-artifacts"
+  touch "${tmp_dir}/_bmad-output/planning-artifacts/prd.md"
+  touch "${tmp_dir}/_bmad-output/planning-artifacts/architecture.md"
+  touch "${tmp_dir}/_bmad-output/planning-artifacts/epics.md"
+  touch "${tmp_dir}/_bmad-output/implementation-artifacts/sprint-status.yaml"
+  touch "${tmp_dir}/_bmad-output/implementation-artifacts/1-1-test-story.md"
+
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  local result
+  result="$(generate_artifact_inventory "${tmp_dir}/_bmad-output")"
+  rm -rf "${tmp_dir}"
+
+  echo "${result}" | grep -q 'prd.md (stage: prd)'
+  echo "${result}" | grep -q 'architecture.md (stage: architecture)'
+  echo "${result}" | grep -q 'epics.md (stage: epics-stories)'
+  echo "${result}" | grep -q 'sprint-status.yaml (stage: sprint-planning)'
+  echo "${result}" | grep -q '1-1-test-story.md (stage: create-story)'
+}
+
+# ──────────────────────────────────────────────
+# 5.2 Task 11.6: Elapsed time tracking (AC: #1)
+# ──────────────────────────────────────────────
+
+@test "FinalReport 5.2-25: loop script captures START_TIME at beginning of main" {
+  grep -q 'START_TIME' "${LOOP_SCRIPT}"
+  grep -q 'date +%s' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-26: loop script has format_elapsed_time function" {
+  grep -q 'format_elapsed_time()' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-27: format_elapsed_time formats seconds correctly" {
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cat > "${tmp_dir}/state.yaml" <<'YAML'
+status: running
+completedStages: []
+YAML
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  rm -rf "${tmp_dir}"
+  [ "$(format_elapsed_time 45)" = "45s" ]
+  [ "$(format_elapsed_time 125)" = "2m 5s" ]
+  [ "$(format_elapsed_time 3725)" = "1h 2m 5s" ]
+}
+
+@test "FinalReport 5.2-28: loop script calculates elapsed time for summary" {
+  grep -q 'elapsed_seconds.*end_time.*START_TIME\|end_time - START_TIME' "${LOOP_SCRIPT}"
+}
+
+# ──────────────────────────────────────────────
+# 5.2 Task 11.7: Failure details extraction (AC: #2)
+# ──────────────────────────────────────────────
+
+@test "FinalReport 5.2-29: loop script has read_failure_details function" {
+  grep -q 'read_failure_details()' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-30: read_failure_details extracts last failure entry from state.yaml" {
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cat > "${tmp_dir}/state.yaml" <<'YAML'
+status: failed
+currentStage: architecture
+failures:
+  - stage: prd
+    error: "Verification failed"
+    attempt: 1
+  - stage: architecture
+    error: "Sub-agent timeout"
+    attempt: 2
+completedStages:
+  - prd
+YAML
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  local result
+  result="$(read_failure_details)"
+  rm -rf "${tmp_dir}"
+  echo "${result}" | grep -q 'architecture|Sub-agent timeout|2|'
+}
+
+@test "FinalReport 5.2-31: read_failure_details extracts reRoutedTo when present" {
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cat > "${tmp_dir}/state.yaml" <<'YAML'
+status: failed
+failures:
+  - stage: epics-stories
+    error: "Upstream dependency failed"
+    attempt: 1
+    reRoutedTo: architecture
+completedStages: []
+YAML
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  local result
+  result="$(read_failure_details)"
+  rm -rf "${tmp_dir}"
+  echo "${result}" | grep -q 'epics-stories|Upstream dependency failed|1|architecture'
+}
+
+@test "FinalReport 5.2-32: loop script includes story ID when failure occurs during story loop" {
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cat > "${tmp_dir}/state.yaml" <<'YAML'
+status: failed
+currentStage: dev-story
+currentStoryId: "2-3-sprint-planning"
+failures:
+  - stage: dev-story
+    error: "Test failures"
+    attempt: 3
+completedStages:
+  - prd
+  - architecture
+YAML
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  local result
+  result="$(read_story_context)"
+  rm -rf "${tmp_dir}"
+  [ "${result}" = "2-3-sprint-planning" ]
+}
+
+# ──────────────────────────────────────────────
+# 5.2 Task 11.8: Completed stages extraction (AC: #1-#3)
+# ──────────────────────────────────────────────
+
+@test "FinalReport 5.2-33: loop script has read_completed_stages function" {
+  grep -q 'read_completed_stages()' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-34: read_completed_stages extracts block-style stages" {
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cat > "${tmp_dir}/state.yaml" <<'YAML'
+completedStages:
+  - prd
+  - architecture
+  - epics-stories
+gates:
+  - prd
+YAML
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  local result
+  result="$(read_completed_stages)"
+  rm -rf "${tmp_dir}"
+  [ "${result}" = "prd, architecture, epics-stories" ]
+}
+
+@test "FinalReport 5.2-35: read_completed_stages extracts flow-style stages" {
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cat > "${tmp_dir}/state.yaml" <<'YAML'
+completedStages: [prd, architecture]
+gates:
+  - prd
+YAML
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  local result
+  result="$(read_completed_stages)"
+  rm -rf "${tmp_dir}"
+  [ "${result}" = "prd, architecture" ]
+}
+
+@test "FinalReport 5.2-36: read_completed_stages returns empty for empty list" {
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cat > "${tmp_dir}/state.yaml" <<'YAML'
+completedStages: []
+gates:
+  - prd
+YAML
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  local result
+  result="$(read_completed_stages)"
+  rm -rf "${tmp_dir}"
+  [ -z "${result}" ]
+}
+
+@test "FinalReport 5.2-37: completed stages listed in summary for all terminal statuses" {
+  # Verify Completed Stages appears in COMPLETED, FAILED, PAUSED, CRASHED cases
+  grep -c 'Completed Stages' "${LOOP_SCRIPT}" | grep -q '[3-9]\|[0-9][0-9]'
+}
+
+# ──────────────────────────────────────────────
+# 5.2 Task 11.9: Behavioral integration tests
+# ──────────────────────────────────────────────
+
+@test "FinalReport 5.2-38: write_status_report COMPLETED produces correct format" {
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cat > "${tmp_dir}/state.yaml" <<'YAML'
+status: completed
+task: "Build a SaaS app"
+route: "full"
+mode: "autonomous"
+completedStages:
+  - prd
+  - architecture
+YAML
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  STATUS_REPORT="${tmp_dir}/status-report.md"
+  write_status_report "COMPLETED" "5" "3m 22s" "prd, architecture" "  - _bmad-output/planning-artifacts/prd.md (stage: prd)"
+  local content
+  content="$(cat "${STATUS_REPORT}")"
+  rm -rf "${tmp_dir}"
+  echo "${content}" | grep -q 'Overall Status.*COMPLETED'
+  echo "${content}" | grep -q 'Total Stages Run.*2'
+  echo "${content}" | grep -q 'Elapsed Time.*3m 22s'
+  echo "${content}" | grep -q 'Completed Stages.*prd, architecture'
+  echo "${content}" | grep -q 'Artifact Inventory'
+  echo "${content}" | grep -q 'prd.md (stage: prd)'
+}
+
+@test "FinalReport 5.2-39: write_status_report FAILED produces correct format" {
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cat > "${tmp_dir}/state.yaml" <<'YAML'
+status: failed
+task: "Build a SaaS app"
+route: "full"
+mode: "autonomous"
+YAML
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  STATUS_REPORT="${tmp_dir}/status-report.md"
+  write_status_report "FAILED" "3" "1m 5s" "prd" "architecture|Sub-agent timeout|2 of 3|"
+  local content
+  content="$(cat "${STATUS_REPORT}")"
+  rm -rf "${tmp_dir}"
+  echo "${content}" | grep -q 'Overall Status.*FAILED'
+  echo "${content}" | grep -q 'Failed At.*architecture'
+  echo "${content}" | grep -q 'Error.*Sub-agent timeout'
+  echo "${content}" | grep -q 'Attempts.*2 of 3'
+  echo "${content}" | grep -q 'Recovery.*bmad-orchestrate.*--resume'
+}
+
+@test "FinalReport 5.2-40: write_status_report PAUSED produces correct format" {
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cat > "${tmp_dir}/state.yaml" <<'YAML'
+status: paused
+task: "Build app"
+route: "full"
+mode: "checkpoint"
+YAML
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  STATUS_REPORT="${tmp_dir}/status-report.md"
+  write_status_report "PAUSED" "2" "45s" "prd, architecture" "architecture"
+  local content
+  content="$(cat "${STATUS_REPORT}")"
+  rm -rf "${tmp_dir}"
+  echo "${content}" | grep -q 'Overall Status.*PAUSED'
+  echo "${content}" | grep -q 'Paused At.*architecture'
+  echo "${content}" | grep -q 'Completed Stages.*prd, architecture'
+  echo "${content}" | grep -q 'Resume.*Review artifacts'
+}
+
+@test "FinalReport 5.2-41: write_status_report CRASHED produces correct format" {
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cat > "${tmp_dir}/state.yaml" <<'YAML'
+status: running
+task: "Build app"
+route: "full"
+mode: "autonomous"
+YAML
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  STATUS_REPORT="${tmp_dir}/status-report.md"
+  write_status_report "CRASHED" "1" "12s" "prd" "137"
+  local content
+  content="$(cat "${STATUS_REPORT}")"
+  rm -rf "${tmp_dir}"
+  echo "${content}" | grep -q 'Overall Status.*CRASHED'
+  echo "${content}" | grep -q 'Exit Code.*137'
+  echo "${content}" | grep -q 'Agent terminated unexpectedly'
+  echo "${content}" | grep -q 'Recovery.*bmad-orchestrate.*--resume'
+}
+
+@test "FinalReport 5.2-42: write_status_report FAILED includes Re-routed to when present" {
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cat > "${tmp_dir}/state.yaml" <<'YAML'
+status: failed
+task: "Build app"
+route: "full"
+mode: "autonomous"
+YAML
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  STATUS_REPORT="${tmp_dir}/status-report.md"
+  write_status_report "FAILED" "3" "2m 10s" "prd" "epics-stories|Upstream fail|1 of 3|architecture"
+  local content
+  content="$(cat "${STATUS_REPORT}")"
+  rm -rf "${tmp_dir}"
+  echo "${content}" | grep -q 'Re-routed to.*architecture'
+}
+
+@test "FinalReport 5.2-43: loop script has read_story_context function" {
+  grep -q 'read_story_context()' "${LOOP_SCRIPT}"
+}
+
+@test "FinalReport 5.2-44: read_story_context returns empty for non-story stages" {
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cat > "${tmp_dir}/state.yaml" <<'YAML'
+status: failed
+currentStage: architecture
+completedStages:
+  - prd
+YAML
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  local result
+  result="$(read_story_context)"
+  rm -rf "${tmp_dir}"
+  [ -z "${result}" ]
+}
+
+@test "FinalReport 5.2-45: write_status_report counts completed stages correctly" {
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cat > "${tmp_dir}/state.yaml" <<'YAML'
+status: completed
+task: "Build app"
+route: "full"
+mode: "autonomous"
+YAML
+  BATS_TESTING=1 TEST_BMAD_DIR="${tmp_dir}" source "${LOOP_SCRIPT}"
+  STATUS_REPORT="${tmp_dir}/status-report.md"
+  write_status_report "COMPLETED" "8" "10m 5s" "prd, architecture, epics-stories, readiness, sprint-planning" ""
+  local content
+  content="$(cat "${STATUS_REPORT}")"
+  rm -rf "${tmp_dir}"
+  echo "${content}" | grep -q 'Total Stages Run.*5'
+}

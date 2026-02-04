@@ -249,7 +249,7 @@ teardown() {
   STATE_FILE="${BMAD_DIR}/state.yaml"
   STATUS_REPORT="${BMAD_DIR}/status-report.md"
   rm -f "${STATUS_REPORT}"
-  write_status_report "COMPLETED" "Test details" 5
+  write_status_report "COMPLETED" "5" "1m 0s" "prd" "  - _bmad-output/planning-artifacts/prd.md (stage: prd)"
   [ -f "${STATUS_REPORT}" ]
   grep -q "Run Started" "${STATUS_REPORT}"
   grep -q "Task:" "${STATUS_REPORT}"
@@ -261,7 +261,7 @@ teardown() {
   STATE_FILE="${BMAD_DIR}/state.yaml"
   STATUS_REPORT="${BMAD_DIR}/status-report.md"
   rm -f "${STATUS_REPORT}"
-  write_status_report "COMPLETED" "Pipeline finished successfully" 10
+  write_status_report "COMPLETED" "10" "5m 0s" "prd, architecture" ""
   grep -q "COMPLETED" "${STATUS_REPORT}"
   grep -q "Total Iterations" "${STATUS_REPORT}"
 }
@@ -272,7 +272,7 @@ teardown() {
   STATE_FILE="${BMAD_DIR}/state.yaml"
   STATUS_REPORT="${BMAD_DIR}/status-report.md"
   rm -f "${STATUS_REPORT}"
-  write_status_report "FAILED" "Stage prd failed" 3
+  write_status_report "FAILED" "3" "1m 5s" "prd" "prd|Stage prd failed|1 of 3|"
   grep -q "FAILED" "${STATUS_REPORT}"
   grep -q "resume" "${STATUS_REPORT}" || grep -q "Resume" "${STATUS_REPORT}" || grep -q "--resume" "${STATUS_REPORT}"
 }
@@ -283,7 +283,7 @@ teardown() {
   STATE_FILE="${BMAD_DIR}/state.yaml"
   STATUS_REPORT="${BMAD_DIR}/status-report.md"
   rm -f "${STATUS_REPORT}"
-  write_status_report "PAUSED" "Checkpoint reached" 7
+  write_status_report "PAUSED" "7" "2m 30s" "prd, architecture" "architecture"
   grep -q "PAUSED" "${STATUS_REPORT}"
   grep -q "resume" "${STATUS_REPORT}" || grep -q "Resume" "${STATUS_REPORT}" || grep -q "--resume" "${STATUS_REPORT}"
 }
@@ -294,7 +294,7 @@ teardown() {
   STATE_FILE="${BMAD_DIR}/state.yaml"
   STATUS_REPORT="${BMAD_DIR}/status-report.md"
   rm -f "${STATUS_REPORT}"
-  write_status_report "CRASHED" "Agent terminated unexpectedly with exit code 137" 2
+  write_status_report "CRASHED" "2" "12s" "" "137"
   grep -q "CRASHED" "${STATUS_REPORT}"
   grep -q "137" "${STATUS_REPORT}"
 }

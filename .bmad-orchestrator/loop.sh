@@ -63,6 +63,145 @@ read_last_completed_stage() {
   echo "${last_stage}"
 }
 
+format_elapsed_time() {
+  local seconds="${1}"
+  local hours minutes secs
+  hours=$((seconds / 3600))
+  minutes=$(( (seconds % 3600) / 60 ))
+  secs=$((seconds % 60))
+  if [[ "${hours}" -gt 0 ]]; then
+    echo "${hours}h ${minutes}m ${secs}s"
+  elif [[ "${minutes}" -gt 0 ]]; then
+    echo "${minutes}m ${secs}s"
+  else
+    echo "${secs}s"
+  fi
+}
+
+read_completed_stages() {
+  local stages=""
+  local in_block=0
+  # Try block style first: lines between completedStages: and next top-level key
+  while IFS= read -r line; do
+    if [[ "${line}" =~ ^completedStages: ]]; then
+      # Check for flow style: completedStages: [a, b, c]
+      if [[ "${line}" =~ \[ ]]; then
+        stages="$(echo "${line}" | sed 's/.*\[//' | sed 's/\]//' | tr -d '"' | tr -d "'" | sed 's/[[:space:]]*,[[:space:]]*/,/g' | xargs | sed 's/,/, /g')"
+        echo "${stages}"
+        return 0
+      fi
+      in_block=1
+      continue
+    fi
+    if [[ "${in_block}" -eq 1 ]]; then
+      if [[ "${line}" =~ ^[a-zA-Z] ]]; then
+        # Reached next top-level key, stop
+        break
+      fi
+      if [[ "${line}" =~ ^[[:space:]]*-[[:space:]] ]]; then
+        local entry
+        entry="$(echo "${line}" | sed 's/^[[:space:]]*- //' | tr -d '"' | tr -d "'" | xargs)"
+        if [[ -n "${entry}" ]]; then
+          if [[ -n "${stages}" ]]; then
+            stages="${stages}, ${entry}"
+          else
+            stages="${entry}"
+          fi
+        fi
+      fi
+    fi
+  done < "${STATE_FILE}"
+  echo "${stages}"
+}
+
+read_failure_details() {
+  # Extract the LAST failure entry from state.yaml failures array
+  # Returns: stage|error|attempt|reRoutedTo (pipe-delimited)
+  local in_failures=0
+  local current_stage="" current_error="" current_attempt="" current_rerouted=""
+  local last_stage="" last_error="" last_attempt="" last_rerouted=""
+  while IFS= read -r line; do
+    if [[ "${line}" =~ ^failures: ]]; then
+      in_failures=1
+      continue
+    fi
+    if [[ "${in_failures}" -eq 1 ]]; then
+      if [[ "${line}" =~ ^[a-zA-Z] ]]; then
+        # Reached next top-level key, stop
+        break
+      fi
+      if [[ "${line}" =~ ^[[:space:]]*-[[:space:]] ]]; then
+        # New failure entry - save previous if exists
+        if [[ -n "${current_stage}" ]]; then
+          last_stage="${current_stage}"
+          last_error="${current_error}"
+          last_attempt="${current_attempt}"
+          last_rerouted="${current_rerouted}"
+        fi
+        current_stage=""
+        current_error=""
+        current_attempt=""
+        current_rerouted=""
+        # Check if this line also has a field (e.g., "- stage: prd")
+        if [[ "${line}" =~ stage:[[:space:]]*(.*) ]]; then
+          current_stage="$(echo "${BASH_REMATCH[1]}" | tr -d '"' | tr -d "'" | xargs)"
+        fi
+      elif [[ "${line}" =~ ^[[:space:]]+stage:[[:space:]]*(.*) ]]; then
+        current_stage="$(echo "${BASH_REMATCH[1]}" | tr -d '"' | tr -d "'" | xargs)"
+      elif [[ "${line}" =~ ^[[:space:]]+error:[[:space:]]*(.*) ]]; then
+        current_error="$(echo "${BASH_REMATCH[1]}" | tr -d '"' | tr -d "'" | xargs)"
+      elif [[ "${line}" =~ ^[[:space:]]+attempt:[[:space:]]*(.*) ]]; then
+        current_attempt="$(echo "${BASH_REMATCH[1]}" | tr -d '"' | tr -d "'" | xargs)"
+      elif [[ "${line}" =~ ^[[:space:]]+reRoutedTo:[[:space:]]*(.*) ]]; then
+        current_rerouted="$(echo "${BASH_REMATCH[1]}" | tr -d '"' | tr -d "'" | xargs)"
+      fi
+    fi
+  done < "${STATE_FILE}"
+  # Save the last entry
+  if [[ -n "${current_stage}" ]]; then
+    last_stage="${current_stage}"
+    last_error="${current_error}"
+    last_attempt="${current_attempt}"
+    last_rerouted="${current_rerouted}"
+  fi
+  echo "${last_stage}|${last_error}|${last_attempt}|${last_rerouted}"
+}
+
+read_story_context() {
+  # Extract story ID from storyLoop if failure occurred during a story-level stage
+  local current_stage
+  current_stage="$(read_state "currentStage")"
+  if [[ "${current_stage}" == "create-story" || "${current_stage}" == "dev-story" || "${current_stage}" == "code-review" ]]; then
+    local story_id
+    # Try top-level currentStoryId first, then storyLoop block
+    story_id="$(read_state "currentStoryId")"
+    if [[ -z "${story_id}" ]]; then
+      story_id="$(sed -n '/^storyLoop:/,/^[a-zA-Z]/{/currentStoryId/p}' "${STATE_FILE}" | head -1 | sed 's/.*currentStoryId:[[:space:]]*//' | tr -d '"' | tr -d "'" | xargs)"
+    fi
+    echo "${story_id}"
+  fi
+}
+
+generate_artifact_inventory() {
+  local output_dir="${1}"
+  if [[ ! -d "${output_dir}" ]]; then
+    echo "  - No artifacts directory found"
+    return 0
+  fi
+  find "${output_dir}" -type f \( -name "*.md" -o -name "*.yaml" -o -name "*.yml" \) 2>/dev/null | sort | while IFS= read -r filepath; do
+    local stage="unknown"
+    case "${filepath}" in
+      */planning-artifacts/prd*.md)          stage="prd" ;;
+      */planning-artifacts/architecture*.md) stage="architecture" ;;
+      */planning-artifacts/*epic*.md)        stage="epics-stories" ;;
+      */planning-artifacts/*readiness*.md)   stage="readiness" ;;
+      */implementation-artifacts/sprint-status.yaml) stage="sprint-planning" ;;
+      */implementation-artifacts/[0-9]*-[0-9]*-*.md) stage="create-story" ;;
+    esac
+    echo "  - ${filepath} (stage: ${stage})"
+  done
+}
+
 preflight_check() {
   if [[ ! -f "${STATE_FILE}" ]]; then
     log "ERROR: state.yaml not found at ${STATE_FILE}. Run /bmad-orchestrate first to initialize."
@@ -90,8 +229,10 @@ launch_agent() {
 
 write_status_report() {
   local overall_status="${1}"
-  local details="${2}"
-  local iterations="${3}"
+  local iterations="${2}"
+  local elapsed_time="${3}"
+  local completed_stages="${4}"
+  local extra_details="${5:-}"
 
   # Create header if file does not exist
   if [[ ! -f "${STATUS_REPORT}" ]]; then
@@ -110,27 +251,77 @@ write_status_report() {
 EOF
   fi
 
-  # Append run summary
+  # Count completed stages
+  local stage_count=0
+  if [[ -n "${completed_stages}" ]]; then
+    stage_count="$(echo "${completed_stages}" | tr ',' '\n' | grep -c '[a-z]' || true)"
+  fi
+
+  # Append run summary - common fields
   cat >> "${STATUS_REPORT}" <<EOF
 ## Run Summary
 - **Overall Status:** ${overall_status}
 - **Total Iterations:** ${iterations}
+- **Total Stages Run:** ${stage_count}
+- **Elapsed Time:** ${elapsed_time}
 - **Timestamp:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-- **Details:** ${details}
 EOF
 
-  # Add recovery instructions for relevant statuses
-  if [[ "${overall_status}" == "FAILED" || "${overall_status}" == "PAUSED" ]]; then
-    cat >> "${STATUS_REPORT}" <<EOF
-- **Resume:** Run \`/bmad-orchestrate --resume\` then \`.bmad-orchestrator/loop.sh\`
+  # Status-specific fields
+  case "${overall_status}" in
+    COMPLETED)
+      cat >> "${STATUS_REPORT}" <<EOF
+- **Completed Stages:** ${completed_stages}
+
+### Artifact Inventory
+${extra_details}
 EOF
-  fi
+      ;;
+    FAILED)
+      # extra_details format: failed_at|error|attempts|rerouted
+      local failed_at error_msg attempts rerouted
+      failed_at="$(echo "${extra_details}" | cut -d'|' -f1)"
+      error_msg="$(echo "${extra_details}" | cut -d'|' -f2)"
+      attempts="$(echo "${extra_details}" | cut -d'|' -f3)"
+      rerouted="$(echo "${extra_details}" | cut -d'|' -f4)"
+
+      cat >> "${STATUS_REPORT}" <<EOF
+- **Failed At:** ${failed_at}
+- **Error:** ${error_msg}
+- **Attempts:** ${attempts}
+- **Completed Stages:** ${completed_stages}
+- **Recovery:** Run \`/bmad-orchestrate --resume\` then \`.bmad-orchestrator/loop.sh\`
+EOF
+      if [[ -n "${rerouted}" ]]; then
+        cat >> "${STATUS_REPORT}" <<EOF
+- **Re-routed to:** ${rerouted}
+EOF
+      fi
+      ;;
+    PAUSED)
+      cat >> "${STATUS_REPORT}" <<EOF
+- **Paused At:** ${extra_details}
+- **Completed Stages:** ${completed_stages}
+- **Resume:** Review artifacts, then run \`/bmad-orchestrate --resume\` then \`.bmad-orchestrator/loop.sh\`
+EOF
+      ;;
+    CRASHED)
+      cat >> "${STATUS_REPORT}" <<EOF
+- **Exit Code:** ${extra_details}
+- **Details:** Agent terminated unexpectedly
+- **Completed Stages:** ${completed_stages}
+- **Recovery:** Run \`/bmad-orchestrate --resume\` then \`.bmad-orchestrator/loop.sh\`
+EOF
+      ;;
+  esac
 
   echo "" >> "${STATUS_REPORT}"
 }
 
 handle_exit_code() {
   local code="${1}"
+  local elapsed_time="${2:-0s}"
+  local completed_stages="${3:-}"
 
   case "${code}" in
     0)
@@ -139,12 +330,29 @@ handle_exit_code() {
       ;;
     1)
       log "Pipeline failed after retries. Stopping loop."
-      write_status_report "FAILED" "Pipeline failed at current stage" "${ITERATION:-0}"
+      local failure_details failed_at failure_error failure_attempt failure_rerouted story_context
+      failure_details="$(read_failure_details)"
+      failed_at="$(echo "${failure_details}" | cut -d'|' -f1)"
+      failure_error="$(echo "${failure_details}" | cut -d'|' -f2)"
+      failure_attempt="$(echo "${failure_details}" | cut -d'|' -f3)"
+      failure_rerouted="$(echo "${failure_details}" | cut -d'|' -f4)"
+      story_context="$(read_story_context)"
+      if [[ -n "${story_context}" ]]; then
+        failed_at="${failed_at} (${story_context})"
+      fi
+      local max_retries
+      max_retries="$(read_state "maxRetries")"
+      if [[ -n "${max_retries}" ]]; then
+        failure_attempt="${failure_attempt} of ${max_retries}"
+      fi
+      write_status_report "FAILED" "${ITERATION:-0}" "${elapsed_time}" "${completed_stages}" "${failed_at}|${failure_error}|${failure_attempt}|${failure_rerouted}"
       return 1
       ;;
     2)
       log "Pipeline complete. All stages finished successfully."
-      write_status_report "COMPLETED" "Pipeline finished successfully" "${ITERATION:-0}"
+      local artifact_inventory
+      artifact_inventory="$(generate_artifact_inventory "_bmad-output")"
+      write_status_report "COMPLETED" "${ITERATION:-0}" "${elapsed_time}" "${completed_stages}" "${artifact_inventory}"
       return 2
       ;;
     3)
@@ -154,12 +362,12 @@ handle_exit_code() {
         checkpoint_stage="unknown"
       fi
       log "Checkpoint reached after ${checkpoint_stage}. Review artifacts and run --resume to continue."
-      write_status_report "PAUSED" "Checkpoint reached after ${checkpoint_stage} - review required" "${ITERATION:-0}"
+      write_status_report "PAUSED" "${ITERATION:-0}" "${elapsed_time}" "${completed_stages}" "${checkpoint_stage}"
       return 3
       ;;
     *)
       log "Unexpected crash with exit code ${code}. Agent terminated unexpectedly. Stopping loop."
-      write_status_report "CRASHED" "Agent terminated unexpectedly with exit code ${code}" "${ITERATION:-0}"
+      write_status_report "CRASHED" "${ITERATION:-0}" "${elapsed_time}" "${completed_stages}" "${code}"
       return "${code}"
       ;;
   esac
@@ -167,6 +375,10 @@ handle_exit_code() {
 
 main() {
   log "Starting Ralph Loop..."
+
+  # Capture pipeline start time for elapsed time calculation (AC #1)
+  local START_TIME
+  START_TIME="$(date +%s)"
 
   preflight_check
 
@@ -183,7 +395,12 @@ main() {
 
     if [[ "${ITERATION}" -gt "${MAX_ITERATIONS}" ]]; then
       log "Safety valve triggered: exceeded ${MAX_ITERATIONS} iterations. Stopping."
-      write_status_report "FAILED" "Safety valve: exceeded ${MAX_ITERATIONS} iterations" "${ITERATION}"
+      local end_time elapsed_seconds elapsed_formatted completed_stages_list
+      end_time="$(date +%s)"
+      elapsed_seconds=$((end_time - START_TIME))
+      elapsed_formatted="$(format_elapsed_time "${elapsed_seconds}")"
+      completed_stages_list="$(read_completed_stages)"
+      write_status_report "FAILED" "${ITERATION}" "${elapsed_formatted}" "${completed_stages_list}" "safety-valve|Exceeded ${MAX_ITERATIONS} iterations|${ITERATION}|"
       exit 1
     fi
 
@@ -194,8 +411,15 @@ main() {
     agent_exit_code=$?
     set -e
 
+    # Calculate elapsed time and completed stages for status report
+    local end_time elapsed_seconds elapsed_formatted completed_stages_list
+    end_time="$(date +%s)"
+    elapsed_seconds=$((end_time - START_TIME))
+    elapsed_formatted="$(format_elapsed_time "${elapsed_seconds}")"
+    completed_stages_list="$(read_completed_stages)"
+
     set +e
-    handle_exit_code "${agent_exit_code}"
+    handle_exit_code "${agent_exit_code}" "${elapsed_formatted}" "${completed_stages_list}"
     handler_result=$?
     set -e
 
