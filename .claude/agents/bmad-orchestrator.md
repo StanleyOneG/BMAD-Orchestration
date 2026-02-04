@@ -429,10 +429,7 @@ For validation stages (`readiness`, `code-review`), check the result:
 
 ### 5.5 On Verification Fail
 
-- Log failure to `failures` array: `{stage, attempt, error, timestamp}`
-- Increment `currentRetries`
-- If `currentRetries` < `maxRetries`: keep `currentStage` unchanged, exit code 0 (loop relaunches for retry)
-- If `currentRetries` >= `maxRetries`: set `status: failed`, exit code 1
+Handle per the **Failure Handling protocol (Section 6)**, which includes: logging to the `failures` array, appending a FAIL entry to the status report, incrementing retries, and determining whether to retry or stop.
 
 ---
 
@@ -448,11 +445,20 @@ When verification fails or an error occurs:
      timestamp: "<ISO-8601>"
    ```
 
-2. Increment `currentRetries`
+2. Append a FAIL entry to `.bmad-orchestrator/status-report.md` (check Section 7.4 for header initialization first):
+   ```markdown
+   ## Stage: <stage-name>
+   - **Outcome:** FAIL
+   - **Timestamp:** <ISO-8601>
+   - **Attempt:** <attempt-number> of <maxRetries>
+   - **Error:** <single-line error summary from failures array>
+   ```
 
-3. **If `currentRetries` < `maxRetries`:** Keep `currentStage` unchanged. The failure context from previous attempts will be injected into `{{failure_context}}` in the template on retry. Exit code 0 (retry).
+3. Increment `currentRetries`
 
-4. **If `currentRetries` >= `maxRetries`:** Set `status: failed`. Exit code 1 (stop).
+4. **If `currentRetries` < `maxRetries`:** Keep `currentStage` unchanged. The failure context from previous attempts will be injected into `{{failure_context}}` in the template on retry. Exit code 0 (retry).
+
+5. **If `currentRetries` >= `maxRetries`:** Set `status: failed`. Exit code 1 (stop).
 
 ### 6.5 Upstream Re-Routing
 
@@ -479,15 +485,25 @@ When a validation stage (`readiness`) returns FAIL, instead of simple same-stage
      reRoutedTo: "<upstream-stage>"
    ```
 
-4. **Set `reRouteOrigin`:** Add field to state: `reRouteOrigin: "<validation-stage>"` (e.g., `reRouteOrigin: "readiness"`). This tells Section 7.1 to route back to the validation stage after the upstream fix instead of advancing normally.
+4. **Append a FAIL (RE-ROUTED) entry to `.bmad-orchestrator/status-report.md`** (check Section 7.4 for header initialization first):
+   ```markdown
+   ## Stage: <stage-name>
+   - **Outcome:** FAIL (RE-ROUTED)
+   - **Timestamp:** <ISO-8601>
+   - **Attempt:** <attempt-number> of <maxRetries>
+   - **Error:** <single-line error summary>
+   - **Re-routed to:** <upstream-stage>
+   ```
 
-5. **Set `currentStage` to the identified upstream stage:** e.g., `currentStage: "architecture"`.
+5. **Set `reRouteOrigin`:** Add field to state: `reRouteOrigin: "<validation-stage>"` (e.g., `reRouteOrigin: "readiness"`). This tells Section 7.1 to route back to the validation stage after the upstream fix instead of advancing normally.
 
-6. **Construct targeted remediation `{{failure_context}}`:** Extract specific failure findings from the readiness report and format them as targeted remediation instructions. The sub-agent must receive instructions like "Revise architecture to address: connection pooling not specified" — NOT a full re-run of the workflow from scratch.
+6. **Set `currentStage` to the identified upstream stage:** e.g., `currentStage: "architecture"`.
 
-7. **Increment `currentRetries`:** Re-routing counts against `maxRetries` to prevent infinite re-routing loops. Each re-route attempt (including the subsequent re-validation) counts as attempts against the original stage's retry limit.
+7. **Construct targeted remediation `{{failure_context}}`:** Extract specific failure findings from the readiness report and format them as targeted remediation instructions. The sub-agent must receive instructions like "Revise architecture to address: connection pooling not specified" — NOT a full re-run of the workflow from scratch.
 
-8. **Exit code 0** (loop relaunches). On next cold start, the orchestrator reads state, sees `currentStage` set to the upstream stage, and loads its template with the remediation failure context.
+8. **Increment `currentRetries`:** Re-routing counts against `maxRetries` to prevent infinite re-routing loops. Each re-route attempt (including the subsequent re-validation) counts as attempts against the original stage's retry limit.
+
+9. **Exit code 0** (loop relaunches). On next cold start, the orchestrator reads state, sees `currentStage` set to the upstream stage, and loads its template with the remediation failure context.
 
 **Failure Chain Readability:** The `failures` array captures the full chain — original failure → re-route decision (with `reRoutedTo`) → upstream attempt result → re-validation result. Each entry is self-contained with stage, attempt, error, and timestamp. Re-route entries additionally include the `reRoutedTo` field to indicate the upstream stage targeted.
 
@@ -522,14 +538,42 @@ This ensures the state file is never partially written. Either the complete new 
 
 ### 7.3 Status Report
 
-Append a stage-level entry to `.bmad-orchestrator/status-report.md`:
+Append a stage-level entry to `.bmad-orchestrator/status-report.md`. Before appending, check if the file exists — if it does NOT exist, initialize it first per Section 7.4.
+
+The status report file is **APPEND-ONLY**. Never read and rewrite the file. Never use Write tool to overwrite the entire file. Always use Edit tool to append at the end, or use Bash to append via `>>` operator.
+
+**PASS entry format** (append after verification passes):
 
 ```markdown
 ## Stage: <stage-name>
-- **Outcome:** PASS | PASS (CONCERNS) | FAIL
+- **Outcome:** PASS | PASS (CONCERNS)
 - **Timestamp:** <ISO-8601>
+- **Artifacts:** <comma-separated list of producedArtifacts paths>
 - **Details:** <one-line summary, include concern details if CONCERNS>
 ```
+
+The `Artifacts` field lists files from the template's `producedArtifacts` frontmatter. This is parsed from the template in Section 3.2, so it is available in the session.
+
+**For FAIL entries**, see Section 6 step 2 (standard failures) and Section 6.5 step 4 (re-routed failures) — these use a different format with Attempt and Error fields instead of Artifacts.
+
+### 7.4 Status Report Initialization
+
+Before appending any entry to `.bmad-orchestrator/status-report.md`, check if the file exists. If it does NOT exist, create it with a header section BEFORE appending the stage entry:
+
+```markdown
+# BMAD Orchestrator — Status Report
+
+- **Task:** <task description from state.yaml>
+- **Route:** <route from state.yaml>
+- **Mode:** <mode from state.yaml>
+- **Started:** <ISO-8601 timestamp>
+- **Branch:** <branch from state.yaml>
+
+---
+
+```
+
+The `loop.sh` `write_status_report` function also creates a header if the file doesn't exist (`if [[ ! -f "${STATUS_REPORT}" ]]; then`). The orchestrator's header is the authoritative one since it runs first. The `loop.sh` header creation remains as a fallback for edge cases where the orchestrator crashes before writing any stage entry.
 
 ---
 
@@ -599,6 +643,7 @@ This must be the very last Bash tool call you make. The `exit` command causes th
 - **You read templates** from `.bmad-orchestrator/templates/` but NEVER modify them
 - **You read `_bmad-output/`** only for artifact verification (checking files exist)
 - **You append to `.bmad-orchestrator/status-report.md`** for stage-level logging
+- **Never overwrite or reorder `.bmad-orchestrator/status-report.md`** — it is append-only. Use Edit tool to append at the end or Bash `>>` operator. Never use Write tool to overwrite the entire file.
 - **Sub-agent IDs are transient** — never persist them in the state file
 - **Do not rely on conversation history** — every launch must orient from `state.yaml` alone
 

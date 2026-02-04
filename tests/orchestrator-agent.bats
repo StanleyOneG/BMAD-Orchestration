@@ -2377,3 +2377,144 @@ YAML
 @test "PartyMode 4.3-31: agent describes non-trigger example (tabs vs spaces) for judgment threshold" {
   grep -qi 'tabs vs spaces.*do NOT warrant Party Mode' "${AGENT_FILE}"
 }
+
+# ──────────────────────────────────────────────
+# Story 5.1 Tests: Stage-Level Status Logging (AC: #1-#5)
+# ──────────────────────────────────────────────
+
+# ── PASS Entry Format (AC #1) ──
+
+@test "StatusLog 5.1-1: agent describes PASS entry format with stage name in status report" {
+  grep -q '## Stage: <stage-name>' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-2: agent describes PASS outcome in status report entry" {
+  grep -q '\*\*Outcome:\*\* PASS | PASS (CONCERNS)' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-3: agent describes timestamp in PASS entry format" {
+  grep -q '\*\*Timestamp:\*\* <ISO-8601>' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-4: agent describes artifacts field in PASS entry format" {
+  grep -q '\*\*Artifacts:\*\* <comma-separated list of producedArtifacts paths>' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-5: agent describes details field in PASS entry format" {
+  grep -q '\*\*Details:\*\* <one-line summary, include concern details if CONCERNS>' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-6: agent describes producedArtifacts as source for artifacts field" {
+  grep -qi "template's \`producedArtifacts\` frontmatter" "${AGENT_FILE}"
+}
+
+# ── FAIL Entry Format (AC #2) ──
+
+@test "StatusLog 5.1-7: agent describes FAIL entry with outcome FAIL in status report" {
+  grep -q '\*\*Outcome:\*\* FAIL$' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-8: agent describes attempt number in FAIL entry format" {
+  grep -q '\*\*Attempt:\*\* <attempt-number> of <maxRetries>' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-9: agent describes error field in FAIL entry format" {
+  grep -q '\*\*Error:\*\* <single-line error summary' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-10: agent describes writing FAIL entry to status report in Section 6" {
+  grep -qi 'Append a FAIL entry to.*status-report\.md' "${AGENT_FILE}"
+}
+
+# ── RE-ROUTED Entry Format (AC #2) ──
+
+@test "StatusLog 5.1-11: agent describes FAIL (RE-ROUTED) outcome in status report" {
+  grep -q '\*\*Outcome:\*\* FAIL (RE-ROUTED)' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-12: agent describes re-route target field in RE-ROUTED entry" {
+  grep -q '\*\*Re-routed to:\*\* <upstream-stage>' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-13: agent describes RE-ROUTED entry in Section 6.5" {
+  grep -qi 'Append a FAIL (RE-ROUTED) entry to.*status-report\.md' "${AGENT_FILE}"
+}
+
+# ── Header Creation (AC #4) ──
+
+@test "StatusLog 5.1-14: agent describes status report header creation if file does not exist" {
+  # Section 7.4 checks file existence and creates header — match the specific instruction
+  grep -qi 'check if the file exists.*does NOT exist.*create it with a header' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-15: agent describes header includes task description from state.yaml" {
+  grep -q '\*\*Task:\*\* <task description from state\.yaml>' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-16: agent describes header includes route from state.yaml" {
+  grep -q '\*\*Route:\*\* <route from state\.yaml>' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-17: agent describes header includes mode from state.yaml" {
+  grep -q '\*\*Mode:\*\* <mode from state\.yaml>' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-18: agent describes header includes started timestamp" {
+  grep -q '\*\*Started:\*\* <ISO-8601 timestamp>' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-19: agent describes header includes branch from state.yaml" {
+  grep -q '\*\*Branch:\*\* <branch from state\.yaml>' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-20: agent has Section 7.4 for Status Report Initialization" {
+  grep -q '### 7\.4 Status Report Initialization' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-21: agent describes loop.sh header as fallback for crash recovery" {
+  grep -qi "loop\.sh.*header.*remains as a fallback\|loop\.sh.*header creation remains as a fallback" "${AGENT_FILE}"
+}
+
+# ── Append-Only Behavior (AC #5) ──
+
+@test "StatusLog 5.1-22: agent describes status report as append-only in Section 7.3" {
+  grep -qi 'status report file is.*APPEND-ONLY' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-23: agent describes never using Write tool to overwrite status report" {
+  grep -qi 'Never use Write tool to overwrite the entire file' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-24: agent describes using Edit tool or Bash append for status report" {
+  grep -qi 'Edit tool to append at the end.*Bash.*>>' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-25: agent describes append-only anti-pattern in Section 9 Boundary Rules" {
+  grep -qi 'Never overwrite or reorder.*status-report\.md.*append-only' "${AGENT_FILE}"
+}
+
+# ── Retry History Visibility (AC #3) ──
+
+@test "StatusLog 5.1-26: agent describes both FAIL and PASS entries present for retried stages" {
+  # FAIL entry is written in Section 6 step 2, PASS entry in Section 7.3 — both append to same file
+  # Verify FAIL entries are appended to status report
+  grep -qi 'Append a FAIL entry to.*status-report\.md' "${AGENT_FILE}"
+  # Verify PASS entries are appended to status report
+  grep -qi 'Append a stage-level entry to.*status-report\.md' "${AGENT_FILE}"
+  # Verify append-only guarantees co-existence: FAIL entries from earlier attempts are never removed
+  grep -qi 'APPEND-ONLY.*Never read and rewrite' "${AGENT_FILE}"
+}
+
+@test "StatusLog 5.1-27: agent describes FAIL entry written before retry increment in Section 6" {
+  # Step 2 (FAIL entry) comes before Step 3 (increment currentRetries) within Section 6
+  local fail_line increment_line
+  fail_line=$(grep -n 'Append a FAIL entry to' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  increment_line=$(grep -n '^3\. Increment `currentRetries`' "${AGENT_FILE}" | head -1 | cut -d: -f1)
+  [ "${fail_line}" -lt "${increment_line}" ]
+}
+
+# ── Section 8.1 Checkpoint Compatibility ──
+
+@test "StatusLog 5.1-28: agent describes checkpoint summary append to status report unchanged" {
+  grep -qi 'Append to status report.*PAUSED (CHECKPOINT)' "${AGENT_FILE}"
+}

@@ -61,15 +61,15 @@ development_status:
     epic-3-retrospective: optional
 
     # Epic 4: Checkpoint Mode & Party Mode
-    epic-4: in-progress
+    epic-4: done
     4-1-checkpoint-gate-pausing-approval: done
     4-2-checkpoint-feedback-revision: done
     4-3-party-mode-integration: done
     epic-4-retrospective: optional
 
     # Epic 5: Status Reporting & Run Observability
-    epic-5: backlog
-    5-1-stage-level-status-logging: backlog
+    epic-5: in-progress
+    5-1-stage-level-status-logging: done
     5-2-final-status-report-failure-details: backlog
     5-3-task-report-generation: backlog
     epic-5-retrospective: optional
