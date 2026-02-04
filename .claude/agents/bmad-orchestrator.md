@@ -48,7 +48,9 @@ Read the complete file `.bmad-orchestrator/state.yaml` and extract ALL fields:
 
 ### 1.2 Determine What To Do
 
-Based on the state file, determine your action. **Check terminal states first, then routing:**
+Based on the state file, determine your action. **Check for task-report directive first, then terminal states, then routing:**
+
+0. **If `currentStage` is `task-report` OR the initial prompt contains `generate-task-report`:** This is a task report generation directive. Proceed directly to Section 11 (Task Report Generation). On first launch with the piped directive, update state to set `currentStage: task-report` via atomic write (Section 7.2) before proceeding — this provides idempotency if relaunched.
 
 1. **If `status` is `completed`:** Pipeline is already done. Exit with code 2.
 
@@ -663,4 +665,45 @@ This must be the very last Bash tool call you make. The `exit` command causes th
 9. Verify: check producedArtifacts exist, goal alignment, quality gate
 10. On pass: update state atomically, write status report
 11. Exit with correct code (0/1/2/3)
+12. (If task-report directive) → Section 11: generate task report, write directly, exit 2
 ```
+
+---
+
+## 11. Task Report Generation
+
+This section handles the `generate-task-report` directive. The task report is a human-readable knowledge transfer document synthesized after a successful pipeline completion. It does NOT go through the normal verification flow (Section 5) — it is a self-contained final step where the orchestrator writes the report directly (not via sub-agent).
+
+### 11.1 Load Template
+
+Load the `stage-task-report.md` template from `.bmad-orchestrator/templates/stage-task-report.md` for structural guidance on report format and required sections.
+
+### 11.2 Read All Artifacts
+
+Read ALL files in `_bmad-output/` — glob for `*.md`, `*.yaml`, `*.yml` across both `planning-artifacts/` and `implementation-artifacts/` subdirectories. Read complete file contents (not just existence checks) to understand what was produced.
+
+### 11.3 Read Pipeline Metadata
+
+Read `.bmad-orchestrator/state.yaml` for pipeline context: `task` description, `route`, `mode`, `completedStages`, `storyLoop` progress, and `failures` history.
+
+### 11.4 Read Stage Outcomes
+
+Read `.bmad-orchestrator/status-report.md` for stage-by-stage outcomes, timing, concerns, re-routing events, and overall pipeline progression.
+
+### 11.5 Synthesize Task Report
+
+Using all collected context, synthesize the task report with these 5 required sections:
+
+- **Summary of Work Accomplished:** What was built, what problem it solves, what the pipeline produced end-to-end
+- **Key Decisions Made:** Significant choices made during execution (routing, architecture, technology selections, trade-offs resolved) with rationale
+- **Important Code Implemented:** What code was written, which files, what each component does, how they work together
+- **Architecture and Design Choices:** Patterns chosen, structural decisions, integration approaches — especially anything sub-agents decided autonomously
+- **Notable Observations:** Anything unexpected, retries that happened, concerns raised, Party Mode brainstorming results, or caveats the developer should know
+
+### 11.6 Write Report
+
+Write the complete report directly to `.bmad-orchestrator/task-report.md`. This is an exception to the boundary rule that the orchestrator never directly writes artifacts — the task report lives in the orchestrator's own runtime directory (`.bmad-orchestrator/`), consistent with writes to `state.yaml` and `status-report.md`.
+
+### 11.7 Exit
+
+Exit with code 2 (pipeline complete). This is the final action of the entire pipeline run.

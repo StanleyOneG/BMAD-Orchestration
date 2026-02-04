@@ -223,8 +223,18 @@ preflight_check() {
 }
 
 launch_agent() {
-  log "Launching orchestrator agent..."
-  claude --agent bmad-orchestrator
+  local prompt="${1:-}"
+  if [[ "${BATS_TESTING:-}" == "1" ]]; then
+    log "Launching orchestrator agent (test mode, skipping)..."
+    return 0
+  fi
+  if [[ -n "${prompt}" ]]; then
+    log "Launching orchestrator agent with directive: ${prompt}"
+    echo "${prompt}" | claude --agent bmad-orchestrator
+  else
+    log "Launching orchestrator agent..."
+    claude --agent bmad-orchestrator
+  fi
 }
 
 write_status_report() {
@@ -353,6 +363,20 @@ handle_exit_code() {
       local artifact_inventory
       artifact_inventory="$(generate_artifact_inventory "_bmad-output")"
       write_status_report "COMPLETED" "${ITERATION:-0}" "${elapsed_time}" "${completed_stages}" "${artifact_inventory}"
+
+      # Task report generation (best-effort, does not block pipeline success)
+      log "Generating task report..."
+      local task_report_exit_code
+      set +e
+      launch_agent "generate-task-report"
+      task_report_exit_code=$?
+      set -e
+      if [[ "${task_report_exit_code}" -ne 2 ]]; then
+        log "WARNING: Task report generation returned exit code ${task_report_exit_code} (expected 2). Task report is best-effort; pipeline is still complete."
+      else
+        log "Task report generated successfully."
+      fi
+
       return 2
       ;;
     3)

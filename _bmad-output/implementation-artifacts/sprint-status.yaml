@@ -68,8 +68,8 @@ development_status:
     epic-4-retrospective: optional
 
     # Epic 5: Status Reporting & Run Observability
-    epic-5: in-progress
+    epic-5: done
     5-1-stage-level-status-logging: done
     5-2-final-status-report-failure-details: done
-    5-3-task-report-generation: backlog
+    5-3-task-report-generation: done
     epic-5-retrospective: optional

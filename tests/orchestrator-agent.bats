@@ -2977,3 +2977,176 @@ YAML
   rm -rf "${tmp_dir}"
   echo "${content}" | grep -q 'Total Stages Run.*5'
 }
+
+# ══════════════════════════════════════════════════════════
+# Story 5.3 Tests: Task Report Generation (AC: #1-#5)
+# ══════════════════════════════════════════════════════════
+
+TASK_REPORT_TEMPLATE=".bmad-orchestrator/templates/stage-task-report.md"
+LOOP_SCRIPT=".bmad-orchestrator/loop.sh"
+
+# ──────────────────────────────────────────────
+# 5.3 Task 4.2: Template validation (AC: #2, #3)
+# ──────────────────────────────────────────────
+
+@test "TaskReport 5.3-1: stage-task-report.md template file exists" {
+  [ -f "${TASK_REPORT_TEMPLATE}" ]
+}
+
+@test "TaskReport 5.3-2: task-report template has valid YAML frontmatter with stage: task-report" {
+  head -1 "${TASK_REPORT_TEMPLATE}" | grep -q '^---$'
+  grep -q 'stage: task-report' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-3: task-report template frontmatter contains agent: bmad-orchestrator" {
+  grep -q 'agent: bmad-orchestrator' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-4: task-report template frontmatter contains command: generate-task-report" {
+  grep -q 'command: generate-task-report' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-5: task-report template frontmatter contains requiredArtifacts with state.yaml" {
+  grep -q 'requiredArtifacts' "${TASK_REPORT_TEMPLATE}"
+  grep -q 'state\.yaml' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-6: task-report template frontmatter contains requiredArtifacts with status-report.md" {
+  grep -q 'status-report\.md' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-7: task-report template frontmatter contains producedArtifacts with task-report.md" {
+  grep -q 'producedArtifacts' "${TASK_REPORT_TEMPLATE}"
+  grep -q 'task-report\.md' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-8: task-report template contains Context Injection section" {
+  grep -q '## Context Injection' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-9: task-report template contains {{task_description}} placeholder" {
+  grep -q '{{task_description}}' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-10: task-report template contains {{failure_context}} per project-context.md standard" {
+  grep -q '{{failure_context}}' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-11: task-report template contains {{mode_instructions}} per project-context.md standard" {
+  grep -q '{{mode_instructions}}' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-12: task-report template contains Stage Instructions section" {
+  grep -q '## Stage Instructions' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-13: task-report template instructs reading all _bmad-output/ artifacts" {
+  grep -q '_bmad-output' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-14: task-report template instructs reading state.yaml for pipeline metadata" {
+  grep -q 'state\.yaml' "${TASK_REPORT_TEMPLATE}"
+  grep -qi 'pipeline.*metadata\|metadata.*pipeline\|task.*route.*mode\|completedStages' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-15: task-report template instructs reading status-report.md for stage outcomes" {
+  grep -q 'status-report\.md' "${TASK_REPORT_TEMPLATE}"
+  grep -qi 'stage.*outcome\|outcome' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-16: task-report template requires Summary of Work Accomplished section" {
+  grep -qi 'Summary of Work Accomplished' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-17: task-report template requires Key Decisions Made section" {
+  grep -qi 'Key Decisions Made' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-18: task-report template requires Important Code Implemented section" {
+  grep -qi 'Important Code Implemented' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-19: task-report template requires Architecture and Design Choices section" {
+  grep -qi 'Architecture and Design Choices' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-20: task-report template requires Notable Observations section" {
+  grep -qi 'Notable Observations' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-21: task-report template contains Verification section" {
+  grep -q '## Verification' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-22: task-report template verification checks task-report.md existence" {
+  grep -q 'task-report\.md' "${TASK_REPORT_TEMPLATE}"
+  grep -qi 'exist\|verify\|confirm\|check' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-23: task-report template verification checks for 5 required content sections" {
+  grep -qi '5.*section\|five.*section\|all.*section\|required.*section' "${TASK_REPORT_TEMPLATE}"
+}
+
+@test "TaskReport 5.3-24: task-report template verification checks minimum content length" {
+  grep -qi '500.*character\|non-trivial\|minimum.*length\|substantive' "${TASK_REPORT_TEMPLATE}"
+}
+
+# ──────────────────────────────────────────────
+# 5.3 Task 4.1: Orchestrator agent task report handling (AC: #2, #3, #4)
+# ──────────────────────────────────────────────
+
+@test "TaskReport 5.3-25: agent describes task-report stage handling in Section 11" {
+  grep -qi 'Section 11\|Task Report Generation' "${AGENT_FILE}"
+  grep -q '## 11\.\|## 11 ' "${AGENT_FILE}"
+}
+
+@test "TaskReport 5.3-26: agent describes reading all _bmad-output/ artifacts for task report" {
+  grep -qi '_bmad-output.*artifact\|artifact.*_bmad-output\|read.*_bmad-output\|_bmad-output.*read' "${AGENT_FILE}"
+}
+
+@test "TaskReport 5.3-27: agent describes reading state.yaml for task report context" {
+  grep -qi 'state\.yaml' "${AGENT_FILE}"
+}
+
+@test "TaskReport 5.3-28: agent describes reading status-report.md for task report context" {
+  grep -qi 'status-report\.md' "${AGENT_FILE}"
+}
+
+@test "TaskReport 5.3-29: agent describes writing task-report.md with required content sections" {
+  grep -qi 'task-report\.md' "${AGENT_FILE}"
+  grep -qi 'Summary of Work Accomplished\|Key Decisions Made\|Important Code Implemented\|Architecture and Design Choices\|Notable Observations' "${AGENT_FILE}"
+}
+
+@test "TaskReport 5.3-30: agent describes exiting with code 2 after task report generation" {
+  # Section 11 should mention exit code 2 in context of task report
+  grep -qi 'exit.*code.*2\|code 2\|exit with.*2' "${AGENT_FILE}"
+}
+
+@test "TaskReport 5.3-31: agent describes task-report stage check in Section 1.2" {
+  # Section 1.2 should have a check for task-report/generate-task-report before terminal states
+  grep -qi 'task-report.*Section 11\|generate-task-report.*Section 11\|task-report.*goto.*11\|generate-task-report' "${AGENT_FILE}"
+}
+
+@test "TaskReport 5.3-32: agent describes loading stage-task-report.md template in Section 11" {
+  grep -qi 'stage-task-report\.md' "${AGENT_FILE}"
+}
+
+@test "TaskReport 5.3-33: agent task report does NOT use normal verification flow (Section 5)" {
+  grep -qi 'NOT.*normal.*verification\|NOT.*Section 5\|self-contained\|does NOT go through.*verification\|skip.*verification' "${AGENT_FILE}"
+}
+
+@test "TaskReport 5.3-34: agent describes synthesizing 5 report sections for task report" {
+  grep -qi 'Summary of Work Accomplished' "${AGENT_FILE}"
+  grep -qi 'Key Decisions Made' "${AGENT_FILE}"
+  grep -qi 'Important Code Implemented' "${AGENT_FILE}"
+  grep -qi 'Architecture and Design Choices' "${AGENT_FILE}"
+  grep -qi 'Notable Observations' "${AGENT_FILE}"
+}
+
+@test "TaskReport 5.3-35: agent describes orchestrator writing task-report.md directly (not via sub-agent)" {
+  grep -qi 'orchestrator.*write.*task-report\|write.*task-report.*directly\|writes the report\|writes the file directly\|write.*report.*directly' "${AGENT_FILE}"
+}
+
+@test "TaskReport 5.3-36: agent describes updating state to currentStage task-report" {
+  grep -qi 'currentStage.*task-report\|task-report.*currentStage' "${AGENT_FILE}"
+}
