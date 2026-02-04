@@ -31,7 +31,6 @@ Act as an **expert engineering lead** throughout the entire architecture workflo
 - **Menu Selection:** When the Architect agent presents options, select `CA` (Create Architecture)
 - **Discovery Questions:** Answer all architectural questions using the Task Description above as the core product vision and referencing `_bmad-output/planning-artifacts/prd.md` as the primary input document. Provide clear, decisive answers that reflect sound engineering judgment
 - **Section Feedback:** When the Architect agent generates architecture sections and asks for feedback, approve sections that accurately capture the technical approach. Request revisions only if a section fundamentally misrepresents the system design or contradicts PRD requirements
-- **YOLO Mode:** When offered the option to enter YOLO mode (typically presented as `[y] YOLO`), select it to drive the workflow to completion autonomously. This accelerates the process while the Architect agent maintains quality
 - **Scope Decisions:** Keep the architecture focused on what the PRD requires. Do not expand scope beyond what the PRD explicitly or implicitly demands
 
 ### Output Requirements
@@ -47,7 +46,7 @@ If this is a retry attempt (failure context is provided above), focus on address
 - If the architecture was not saved: Ensure the Architect agent completes the full workflow including the save step
 - If content was misaligned with the PRD: Provide more explicit guidance referencing specific PRD sections that need to be addressed
 - If readiness feedback is present in failure context: Address specific architectural gaps identified in the feedback
-- If the workflow stalled: Use YOLO mode earlier to push through interaction-heavy sections
+- If the workflow stalled: be more directive in responses and guide the agent to completion
 
 ## Verification
 

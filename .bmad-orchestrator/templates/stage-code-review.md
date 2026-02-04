@@ -35,7 +35,6 @@ Act as an **expert engineering lead** throughout the code review workflow:
 - **Story Identification:** Provide the specific story key so the review agent knows WHICH story to review
 - **Git Diff Context:** Provide the `git diff` of commits made during the dev-story phase so the reviewer can see exactly what changed. Use the `devStoryStartCommit` hash from `state.yaml` (recorded before dev-story launched) to compute the diff: `git diff <devStoryStartCommit>..HEAD`. If `devStoryStartCommit` is absent, fall back to `git log --since=<updatedAt>` to approximate the commit range. This helps the reviewer focus on the actual changes rather than scanning the entire codebase
 - **Review Expectations:** The code review agent performs an ADVERSARIAL review that finds specific problems: code quality, test coverage, architecture compliance, security, performance. When issues are found, collect the feedback for potential injection into `{{failure_context}}` on dev-story retry
-- **YOLO Mode:** When offered the option to enter YOLO mode (typically presented as `[y] YOLO`), select it to drive the workflow to completion autonomously
 - **LLM Selection:** A different LLM is recommended for fresh perspective but not required by the architecture. However, a fresh context window is mandatory
 
 ### Output Requirements
@@ -48,7 +47,7 @@ Act as an **expert engineering lead** throughout the code review workflow:
 
 If this is a retry attempt (failure context is provided above), focus on addressing the specific issues from the previous attempt. Common recovery strategies:
 
-- If review stalls: Use YOLO mode earlier to push through interaction-heavy sections
+- If review stalls: Be more directive in responses and guide the agent to completion
 - If review finds issues: This is NOT a recovery failure — it means dev-story needs to re-run with the review feedback. Capture the specific issues for `{{failure_context}}` injection
 - If review produces no output: Ensure the workflow completes with a clear verdict (PASS, CONCERNS, or FAIL)
 

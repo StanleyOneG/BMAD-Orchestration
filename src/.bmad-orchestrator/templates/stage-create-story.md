@@ -34,7 +34,6 @@ Act as an **expert engineering lead** throughout the create story workflow:
 - **Story Identification:** Provide the specific story key (e.g., `2-4-story-loop-iteration-create-story-template`) so the SM agent knows WHICH story to create. The story key is injected by the orchestrator from the current `storyLoop` entry
 - **Context Provision:** The SM agent will analyze the epics file, identify the target story from `sprint-status.yaml`, and create a comprehensive story file with acceptance criteria, tasks, dev notes, and references. Reference `_bmad-output/planning-artifacts/epics.md` for story requirements and `_bmad-output/planning-artifacts/architecture.md` for technical context
 - **Technical Decisions:** When asked about technical context, reference architecture decisions, previous story files in `_bmad-output/implementation-artifacts/`, and `_bmad-output/project-context.md` for coding standards and patterns
-- **YOLO Mode:** When offered the option to enter YOLO mode (typically presented as `[y] YOLO`), select it to drive the workflow to completion autonomously
 - **Scope Decisions:** Keep story creation focused on the specific story from the epics file. Do not expand scope or merge stories
 
 ### Output Requirements

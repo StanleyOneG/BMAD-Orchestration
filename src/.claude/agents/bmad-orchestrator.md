@@ -357,7 +357,7 @@ Pass the template content (Stage Instructions section) as the Task tool `prompt`
 
 - The `task` description from state.yaml
 - Any `failure_context` from previous failed attempts on this stage
-- Mode-specific instructions based on `mode` (autonomous vs checkpoint)
+- Mode instructions (see Section 4.2.1 for the exact replacement text for `{{mode_instructions}}`)
 - When `fileContext` is populated (from Section 1.3 File Reference Detection), include the referenced file contents as additional context alongside the task description. Format each entry as: `"Referenced file: {path}\n---\n{contents}\n---"` appended after `{{task_description}}`
 
 ### 4.2 Act as Expert Human User
@@ -368,6 +368,21 @@ When the sub-agent returns output at interaction points (menus, questions, promp
 - **Answer workflow questions** using the `task` description and available artifacts from previously completed stages
 - **Provide context** from completed stages — read artifacts in `_bmad-output/` for reference
 - **Trigger Party Mode** when you detect competing approaches, ambiguity, or trade-offs that benefit from multi-perspective brainstorming — see **Section 4.4** for detailed trigger criteria and invocation protocol
+
+**CRITICAL — NEVER suppress sub-agent interaction.** Sub-agents MUST follow their normal interactive workflows. The orchestrator plays the role of a knowledgeable human user who answers their questions. When constructing the sub-agent prompt:
+
+- **NEVER** include instructions like "run autonomously", "do not ask questions", "run in yolo mode", "skip interaction", or "fully autonomous"
+- **NEVER** tell the sub-agent that no human is available or that it should make all decisions independently
+- The `mode` field (`autonomous` vs `checkpoint`) controls ONLY checkpoint gate behavior (Section 8) — it has NO bearing on sub-agent interaction style
+- Sub-agents asking questions is the BMAD method working as designed — the orchestrator answers those questions as the expert human
+
+### 4.2.1 Template Placeholder: `{{mode_instructions}}`
+
+Templates contain a `{{mode_instructions}}` placeholder. Replace it with:
+
+- **Always (regardless of mode):** `"The orchestrator will respond to your questions as an expert product and engineering lead. Follow your normal interactive workflow — ask questions when you need clarification or decisions."`
+
+Do NOT vary the mode instructions based on `mode: autonomous` vs `mode: checkpoint`. Both modes use the same sub-agent interaction pattern. The difference between modes is handled entirely by the orchestrator's checkpoint gate logic (Section 8), not by sub-agent behavior.
 
 ### 4.3 Resume Pattern
 
@@ -441,7 +456,9 @@ For validation stages (`readiness`, `code-review`), check the result:
 
 - Update state (Section 7)
 - Write stage outcome to `.bmad-orchestrator/status-report.md`
-- Prepare appropriate exit code
+- **Exit immediately** with the appropriate exit code (Section 8)
+
+**CRITICAL — ONE STAGE PER LAUNCH:** After completing a stage (state update + status report), you MUST exit immediately. Do NOT load the next template or continue to the next stage. The Ralph Loop will relaunch you with fresh context for the next stage. The ONLY exception is the initial routing step (Section 1.2 step 4e) where routing and first-stage execution happen in the same launch.
 
 ### 5.5 On Verification Fail
 
@@ -680,9 +697,11 @@ This must be the very last Bash tool call you make. Do not perform any actions a
 8. Interact as expert human user until workflow completes
 9. Verify: check producedArtifacts exist, goal alignment, quality gate
 10. On pass: update state atomically, write status report
-11. Exit with correct code (0/1/2/3)
+11. EXIT immediately with correct code (0/1/2/3) — ONE STAGE PER LAUNCH
 12. (If task-report directive) → Section 11: generate task report, write directly, exit 2
 ```
+
+**One stage, one launch.** Each Ralph Loop iteration executes exactly ONE pipeline stage, then exits. The loop script relaunches a fresh agent for the next stage. Never continue to the next stage inline — always exit first.
 
 ---
 

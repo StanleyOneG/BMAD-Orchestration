@@ -235,6 +235,62 @@ teardown() {
   [[ "$output" == *"crash"* ]] || [[ "$output" == *"Crash"* ]] || [[ "$output" == *"unexpected"* ]] || [[ "$output" == *"Unexpected"* ]]
 }
 
+@test "Task 2.8: exit code 143 with status=completed maps to pipeline success" {
+  source_functions
+  BMAD_DIR="${TEST_BMAD_DIR}"
+  STATE_FILE="${BMAD_DIR}/state.yaml"
+  STATUS_REPORT="${BMAD_DIR}/status-report.md"
+  rm -f "${STATUS_REPORT}"
+  sed -i 's/^status: running/status: completed/' "${STATE_FILE}"
+  ITERATION=1
+  # Override launch_agent to prevent actual agent launch during task report
+  launch_agent() { return 2; }
+  export -f launch_agent
+  run handle_exit_code 143 "1m 0s" "quick-spec, quick-dev"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"completed"* ]] || [[ "$output" == *"success"* ]]
+  unset -f launch_agent
+}
+
+@test "Task 2.9: exit code 143 with status=failed maps to pipeline failure" {
+  source_functions
+  BMAD_DIR="${TEST_BMAD_DIR}"
+  STATE_FILE="${BMAD_DIR}/state.yaml"
+  STATUS_REPORT="${BMAD_DIR}/status-report.md"
+  rm -f "${STATUS_REPORT}"
+  sed -i 's/^status: running/status: failed/' "${STATE_FILE}"
+  ITERATION=1
+  run handle_exit_code 143 "1m 0s" "quick-spec"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"failed"* ]] || [[ "$output" == *"fail"* ]]
+}
+
+@test "Task 2.10: exit code 143 with status=paused maps to checkpoint pause" {
+  source_functions
+  BMAD_DIR="${TEST_BMAD_DIR}"
+  STATE_FILE="${BMAD_DIR}/state.yaml"
+  STATUS_REPORT="${BMAD_DIR}/status-report.md"
+  rm -f "${STATUS_REPORT}"
+  sed -i 's/^status: running/status: paused/' "${STATE_FILE}"
+  ITERATION=1
+  run handle_exit_code 143 "1m 0s" "prd"
+  [ "$status" -eq 3 ]
+  [[ "$output" == *"paused"* ]] || [[ "$output" == *"checkpoint"* ]] || [[ "$output" == *"Checkpoint"* ]]
+}
+
+@test "Task 2.11: exit code 143 with status=running treats as crash" {
+  source_functions
+  BMAD_DIR="${TEST_BMAD_DIR}"
+  STATE_FILE="${BMAD_DIR}/state.yaml"
+  STATUS_REPORT="${BMAD_DIR}/status-report.md"
+  rm -f "${STATUS_REPORT}"
+  # State is already running from setup
+  ITERATION=1
+  run handle_exit_code 143 "30s" ""
+  [ "$status" -eq 143 ]
+  [[ "$output" == *"crashed"* ]] || [[ "$output" == *"Crashed"* ]] || [[ "$output" == *"running"* ]]
+}
+
 # ──────────────────────────────────────────────
 # Task 3 Tests: Status report writing
 # ──────────────────────────────────────────────

@@ -390,6 +390,42 @@ handle_exit_code() {
       write_status_report "PAUSED" "${ITERATION:-0}" "${elapsed_time}" "${completed_stages}" "${checkpoint_stage}"
       return 3
       ;;
+    143)
+      # Exit code 143 = SIGTERM (128+15). The orchestrator sends SIGTERM to the
+      # parent claude process, which always produces exit code 143.
+      # Read state.yaml to determine the orchestrator's actual intended outcome.
+      log "Agent terminated via SIGTERM (exit code 143). Checking state for intended outcome..."
+      local intended_status
+      intended_status="$(read_state "status")"
+      case "${intended_status}" in
+        completed)
+          log "State shows completed. Treating as pipeline success."
+          handle_exit_code 2 "${elapsed_time}" "${completed_stages}"
+          return "$?"
+          ;;
+        failed)
+          log "State shows failed. Treating as pipeline failure."
+          handle_exit_code 1 "${elapsed_time}" "${completed_stages}"
+          return "$?"
+          ;;
+        paused)
+          log "State shows paused. Treating as checkpoint pause."
+          handle_exit_code 3 "${elapsed_time}" "${completed_stages}"
+          return "$?"
+          ;;
+        running)
+          # State still says running — orchestrator crashed before updating state
+          log "State still shows running. Agent crashed before state update. Stopping loop."
+          write_status_report "CRASHED" "${ITERATION:-0}" "${elapsed_time}" "${completed_stages}" "143"
+          return 143
+          ;;
+        *)
+          log "Unexpected state status '${intended_status}' after SIGTERM. Stopping loop."
+          write_status_report "CRASHED" "${ITERATION:-0}" "${elapsed_time}" "${completed_stages}" "143"
+          return 143
+          ;;
+      esac
+      ;;
     *)
       log "Unexpected crash with exit code ${code}. Agent terminated unexpectedly. Stopping loop."
       write_status_report "CRASHED" "${ITERATION:-0}" "${elapsed_time}" "${completed_stages}" "${code}"

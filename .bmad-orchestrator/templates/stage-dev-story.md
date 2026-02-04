@@ -33,7 +33,6 @@ Act as an **expert engineering lead** throughout the dev story workflow:
 - **Story Identification:** Provide the specific story key (e.g., `2-5-dev-story-code-review-templates-with-git-commits`) so the Dev agent knows WHICH story to implement. The story key is injected by the orchestrator from the current `storyLoop` entry
 - **Context Provision:** The Dev agent will read the story file, implement all tasks/subtasks, write tests, and make git commits. Reference `_bmad-output/planning-artifacts/architecture.md` for architectural decisions and `_bmad-output/project-context.md` for bash standards, naming conventions, and anti-patterns
 - **Technical Decisions:** When asked about technical decisions, reference architecture.md, project-context.md, and previous story files in `_bmad-output/implementation-artifacts/` for established patterns
-- **YOLO Mode:** When offered the option to enter YOLO mode (typically presented as `[y] YOLO`), select it to drive the workflow to completion autonomously
 - **Git Commits:** The Dev agent makes git commits to the current worktree branch during implementation. The orchestrator does NOT make commits itself — it only verifies that commits were made (per Boundary Rules, Section 9). Ensure the Dev agent references project-context.md for bash standards, naming conventions, and anti-patterns
 
 ### Output Requirements

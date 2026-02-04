@@ -31,7 +31,6 @@ Act as an **expert engineering lead** throughout the Quick Dev workflow:
 - **Menu Selection:** When the Quick Flow agent presents options, select `QD` (Quick Dev)
 - **Tech Spec Reference:** Provide the path to the tech-spec file (`_bmad-output/planning-artifacts/tech-spec.md`) so the agent knows what to implement
 - **Technical Decisions:** When asked about technical decisions, reference the tech spec and the original task description. Keep implementation focused on what the spec calls for
-- **YOLO Mode:** When offered the option to enter YOLO mode (typically presented as `[y] YOLO`), select it to drive the workflow to completion autonomously
 - **Git Commits:** The Quick Dev agent makes git commits to the current worktree branch during implementation. The orchestrator does NOT make commits itself — it only verifies that commits were made (per Boundary Rules, Section 9)
 - **Internal Review:** The Quick Dev agent handles its own adversarial code review internally (self-check and adversarial review steps). There is no separate code-review stage in Quick Flow
 

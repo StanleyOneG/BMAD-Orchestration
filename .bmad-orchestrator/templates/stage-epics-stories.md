@@ -32,7 +32,6 @@ Act as an **expert product manager** throughout the entire epics and stories wor
 - **Menu Selection:** When the PM agent presents options, select `CE` (Create Epics & Stories)
 - **Discovery Questions:** Answer all workflow questions using the Task Description above as the core product vision, referencing both `_bmad-output/planning-artifacts/prd.md` and `_bmad-output/planning-artifacts/architecture.md` as input documents. Provide clear, decisive answers that reflect thorough product understanding
 - **Section Feedback:** When the PM agent generates epic and story content and asks for feedback, approve sections that accurately decompose the PRD requirements into actionable stories. Request revisions only if stories fundamentally miss PRD requirements or ignore architectural constraints
-- **YOLO Mode:** When offered the option to enter YOLO mode (typically presented as `[y] YOLO`), select it to drive the workflow to completion autonomously. This accelerates the process while the PM agent maintains quality
 - **Scope Decisions:** Keep the epics and stories focused on what the PRD and architecture require. Do not expand scope beyond what these documents explicitly or implicitly demand
 
 ### Output Requirements
@@ -48,7 +47,7 @@ If this is a retry attempt (failure context is provided above), focus on address
 - If the epics file was not saved: Ensure the PM agent completes the full workflow including the save step
 - If stories don't cover all PRD requirements: Guide the PM to review the functional requirements coverage map and ensure all FRs are addressed
 - If architectural constraints are missing from stories: Explicitly reference architecture decisions that need to be reflected in story acceptance criteria
-- If the workflow stalled: Use YOLO mode earlier to push through interaction-heavy sections
+- If the workflow stalled: Be more directive in responses and guide the agent to completion
 
 ## Verification
 

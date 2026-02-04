@@ -33,7 +33,6 @@ Act as an **expert engineering lead** throughout the sprint planning workflow:
 - **Epic Analysis:** The SM agent will analyze the epic files and extract all epics and stories. Reference `_bmad-output/planning-artifacts/epics.md` and `_bmad-output/planning-artifacts/architecture.md` for context on priority order, epic sequencing, and story dependencies
 - **Priority Decisions:** When asked about priority order or sequencing, make decisive engineering judgments based on dependency chains, risk, and value delivery. Earlier epics should deliver foundational capabilities that later epics build upon
 - **Story Dependencies:** Identify and communicate cross-epic dependencies that affect story ordering within sprints
-- **YOLO Mode:** When offered the option to enter YOLO mode (typically presented as `[y] YOLO`), select it to drive the workflow to completion autonomously
 - **Scope Decisions:** Keep planning focused on organizing and sequencing existing stories from the epic files. Do not expand scope or add new stories during sprint planning
 
 ### Output Requirements
@@ -51,7 +50,7 @@ If this is a retry attempt (failure context is provided above), focus on address
 - If sprint-status not saved: Ensure the SM agent completes the full workflow including the save step. Verify the file is written to `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - If previous failure context is present: Address the specific issues identified in the failure context when interacting with the SM agent
 - If stale data: Regenerate the sprint status from the current epic files to ensure all epics and stories are represented
-- If the workflow stalled: Use YOLO mode earlier to push through interaction-heavy sections
+- If the workflow stalled: Be more directive in responses and guide the agent to completion
 
 ## Verification
 

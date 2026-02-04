@@ -33,7 +33,6 @@ Act as an **expert engineering lead** throughout the entire readiness review wor
 - **Menu Selection:** When the PM agent presents options, select `IR` (Implementation Readiness Review)
 - **Discovery Questions:** The IR workflow is adversarial -- it actively checks PRD, Architecture, and Epics for completeness, alignment, and gaps. Answer any questions by referencing all three planning artifacts: `_bmad-output/planning-artifacts/prd.md`, `_bmad-output/planning-artifacts/architecture.md`, and `_bmad-output/planning-artifacts/epics.md`. Provide clear, decisive answers that reflect thorough engineering judgment
 - **Review Findings:** When the review surfaces concerns or gaps, acknowledge legitimate findings and provide context where needed. Do not dismiss valid concerns
-- **YOLO Mode:** When offered the option to enter YOLO mode (typically presented as `[y] YOLO`), select it to drive the workflow to completion autonomously. This accelerates the process while maintaining review rigor
 - **Scope Decisions:** Keep the review focused on implementation readiness. The goal is validating existing artifacts, not expanding scope
 
 ### Output Requirements
@@ -50,7 +49,7 @@ If this is a retry attempt (failure context is provided above), focus on address
 - If previous concerns were identified in failure context: Provide explicit remediation guidance targeting those specific concerns when the review asks about them
 - If upstream re-routing feedback is present: Explain which upstream artifact was revised and what changed, so the review can validate the corrections. The orchestrator re-routed to the upstream stage with targeted remediation instructions (per Section 6.5 of orchestrator agent). Focus the review on validating that the specific gaps identified in the previous readiness report have been addressed.
 - If this is a re-validation after upstream re-routing: The failure context will describe which upstream artifact was revised and what specific gaps were addressed. Pay particular attention to the areas flagged in the previous failure — confirm the upstream revision resolved the identified gaps.
-- If the workflow stalled: Use YOLO mode earlier to push through interaction-heavy sections
+- If the workflow stalled: be more directive in responses and guide the agent to completion
 
 ## Verification
 

@@ -30,7 +30,6 @@ Act as an **expert product owner** throughout the entire PRD workflow:
 - **Menu Selection:** When the PM agent presents options, select `CP` (Create PRD)
 - **Discovery Questions:** Answer all product discovery questions using the Task Description above as the core product vision. Provide clear, decisive answers that reflect a well-thought-out product strategy
 - **Section Feedback:** When the PM agent generates PRD sections and asks for feedback, approve sections that accurately capture the task intent. Request revisions only if a section fundamentally misrepresents the product vision
-- **YOLO Mode:** When offered the option to enter YOLO mode (typically presented as `[y] YOLO`), select it to drive the workflow to completion autonomously. This accelerates the process while the PM agent maintains quality
 - **Scope Decisions:** Keep the PRD focused on the task description. Do not expand scope beyond what the task explicitly or implicitly requires
 
 ### Output Requirements
@@ -45,7 +44,7 @@ If this is a retry attempt (failure context is provided above), focus on address
 
 - If the PRD was not saved: Ensure the PM agent completes the full workflow including the save step
 - If content was misaligned: Provide more explicit product vision answers that steer the PRD toward the task intent
-- If the workflow stalled: Use YOLO mode earlier to push through interaction-heavy sections
+- If the workflow stalled: Be more directive in responses and guide the agent to completion
 
 ## Verification
 

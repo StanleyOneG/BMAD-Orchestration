@@ -30,7 +30,6 @@ Act as an **expert product and engineering lead** throughout the Quick Spec work
 - **Menu Selection:** When the Quick Flow agent presents options, select `TS` (Tech Spec / Quick Spec)
 - **Discovery Questions:** The Quick Spec workflow is conversational — the agent asks discovery questions, investigates existing code, then generates a tech spec. Provide clear, decisive answers using the task description. Keep scope narrow and focused on the specific task
 - **Technical Decisions:** When asked about technical decisions, keep scope narrow and focused on the specific task. Reference existing code patterns and project conventions. Avoid expanding scope beyond what the task description requires
-- **YOLO Mode:** When offered the option to enter YOLO mode (typically presented as `[y] YOLO`), select it to drive the workflow to completion autonomously
 - **Output:** The Quick Spec workflow produces a tech-spec file (markdown) that serves as the implementation blueprint for the quick-dev stage
 
 ### Output Requirements
@@ -44,7 +43,7 @@ If this is a retry attempt (failure context is provided above), focus on address
 
 - If tech spec not saved: ensure the workflow completes including the save step. Re-run the workflow if needed
 - If content misaligned: provide more explicit answers steering toward the task intent. Be more directive about scope and approach
-- If workflow stalls: use YOLO mode earlier to drive through to completion
+- If workflow stalls: be more directive in responses and guide the agent to completion
 
 ## Verification
 
