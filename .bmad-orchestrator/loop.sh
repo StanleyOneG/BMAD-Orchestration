@@ -224,16 +224,17 @@ preflight_check() {
 
 launch_agent() {
   local prompt="${1:-}"
+  local bootstrap="Read the file .claude/agents/bmad-orchestrator.md — it contains your complete instructions. Follow them exactly as your system prompt. Then execute the pipeline."
   if [[ "${BATS_TESTING:-}" == "1" ]]; then
     log "Launching orchestrator agent (test mode, skipping)..."
     return 0
   fi
   if [[ -n "${prompt}" ]]; then
     log "Launching orchestrator agent with directive: ${prompt}"
-    echo "${prompt}" | claude --agent bmad-orchestrator
+    echo "${bootstrap} Directive: ${prompt}" | claude --dangerously-skip-permissions
   else
     log "Launching orchestrator agent..."
-    claude --agent bmad-orchestrator
+    echo "${bootstrap}" | claude --dangerously-skip-permissions
   fi
 }
 

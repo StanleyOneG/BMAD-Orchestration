@@ -175,8 +175,8 @@ teardown() {
   grep -q 'launch_agent' "${SCRIPT}"
 }
 
-@test "Task 2.1: launch_agent invokes claude --agent bmad-orchestrator" {
-  grep -q 'claude --agent bmad-orchestrator' "${SCRIPT}"
+@test "Task 2.1: launch_agent invokes claude with dangerously-skip-permissions" {
+  grep -q 'claude --dangerously-skip-permissions' "${SCRIPT}"
 }
 
 @test "Task 2.2: main captures exit code with set +e/set -e around launch_agent" {

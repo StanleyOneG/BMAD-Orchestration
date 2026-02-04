@@ -265,7 +265,7 @@ A story can cycle between `dev-story` and `code-review` multiple times until cod
 
 ### Code-Review Requires Fresh Sub-Agent
 
-**CRITICAL:** The code-review stage MUST be launched as a NEW, FRESH Task tool sub-agent with a CLEAN context window. The orchestrator must create a NEW Task tool invocation — never resume or reuse the dev-story sub-agent. The reviewer must approach the code cold, from disk artifacts and git diffs only, with zero carry-over from the implementation conversation. Sub-agent IDs are transient (per Section 9). This prevents confirmation bias and ensures genuine adversarial review.
+**CRITICAL:** The code-review stage MUST be launched as a NEW, FRESH Task tool sub-agent with a CLEAN context window. The orchestrator must create a NEW Task tool invocation — never resume or reuse the dev-story sub-agent. The reviewer must approach the code cold, from disk artifacts and git diffs only, with zero carry-over from the implementation conversation. This prevents confirmation bias and ensures genuine adversarial review.
 
 ### Quick Flow Track (`route: quick`)
 
@@ -339,7 +339,21 @@ After loading the template and before launching the sub-agent, construct the `{{
 
 ### 4.1 Launch Sub-Agent via Task Tool
 
-Use Claude Code's **Task tool** to launch the sub-agent specified in the template frontmatter. Pass the template content (Stage Instructions section) as context along with:
+Use the **Task tool** to launch the sub-agent specified in the template frontmatter `agent` field. The Task tool is a native Claude Code tool — you call it exactly like `Read`, `Write`, `Bash`, or any other tool.
+
+Set the `subagent_type` parameter from the template frontmatter `agent` field:
+
+| Template `agent` field | Task tool `subagent_type` |
+|------------------------|--------------------------|
+| `bmad-quick-flow`      | `bmad-quick-flow`        |
+| `bmad-pm`              | `bmad-pm`                |
+| `bmad-architect`       | `bmad-architect`         |
+| `bmad-sm`              | `bmad-sm`                |
+| `bmad-dev`             | `bmad-dev`               |
+| `bmad-analyst`         | `bmad-analyst`           |
+| `bmad-tea`             | `bmad-tea`               |
+
+Pass the template content (Stage Instructions section) as the Task tool `prompt` parameter, along with:
 
 - The `task` description from state.yaml
 - Any `failure_context` from previous failed attempts on this stage
@@ -631,22 +645,24 @@ When a checkpoint gate is detected (completed stage is in `gates` array), genera
 To propagate the exit code to the Ralph Loop, execute this as your **final action** via the Bash tool:
 
 ```bash
-exit <code>
+kill -TERM $PPID; exit <code>
 ```
 
-This must be the very last Bash tool call you make. The `exit` command causes the `claude` CLI process to terminate with the specified code, which the loop script captures and dispatches on. Do not perform any actions after this Bash call.
+**IMPORTANT:** A bare `exit <code>` only exits the Bash subshell — it does NOT terminate the `claude` CLI process. You MUST use `kill -TERM $PPID` to send SIGTERM to the parent `claude` process first, then `exit <code>` to set the exit code. The `$PPID` variable refers to the parent process (the `claude` CLI). Without `kill -TERM $PPID`, the claude process will remain running and stall waiting for the next prompt, blocking the Ralph Loop.
+
+This must be the very last Bash tool call you make. Do not perform any actions after this Bash call.
 
 ---
 
 ## 9. Boundary Rules (CRITICAL)
 
 - **You read/write `.bmad-orchestrator/state.yaml`** — this is your primary state mechanism
-- **You NEVER directly write BMAD artifacts** in `_bmad-output/` — sub-agents produce artifacts through their own workflows
+- **You NEVER directly write BMAD artifacts** in `_bmad-output/` — sub-agents produce artifacts through their own workflows. You MAY read and analyze the codebase to understand it and provide informed answers when sub-agents ask questions (this is part of your expert human user role). However, you MUST NOT write tech specs, PRDs, stories, or any other artifact yourself. You MUST delegate ALL artifact creation to the appropriate sub-agent via the Task tool (Section 4.1). Your role is orchestration — you launch sub-agents, interact with them as an expert human user, and verify their output. You do NOT produce their deliverables for them.
 - **You read templates** from `.bmad-orchestrator/templates/` but NEVER modify them
 - **You read `_bmad-output/`** only for artifact verification (checking files exist)
 - **You append to `.bmad-orchestrator/status-report.md`** for stage-level logging
 - **Never overwrite or reorder `.bmad-orchestrator/status-report.md`** — it is append-only. Use Edit tool to append at the end or Bash `>>` operator. Never use Write tool to overwrite the entire file.
-- **Sub-agent IDs are transient** — never persist them in the state file
+- **Launch sub-agents ONLY via the Task tool** (Section 4.1). Never use Bash to run `claude` commands to launch sub-agents
 - **Do not rely on conversation history** — every launch must orient from `state.yaml` alone
 
 ---
