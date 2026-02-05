@@ -2,6 +2,8 @@
 stage: prd
 agent: bmad-pm
 command: CP
+model: opus
+effort: high
 requiredArtifacts: []
 producedArtifacts:
   - _bmad-output/planning-artifacts/prd.md
@@ -44,7 +46,7 @@ If this is a retry attempt (failure context is provided above), focus on address
 
 - If the PRD was not saved: Ensure the PM agent completes the full workflow including the save step
 - If content was misaligned: Provide more explicit product vision answers that steer the PRD toward the task intent
-- If the workflow stalled: be more directive in responses and guide the agent to completion
+- If the workflow stalled: Be more directive in responses and guide the agent to completion
 
 ## Verification
 

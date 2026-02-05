@@ -304,6 +304,8 @@ Extract YAML frontmatter fields:
 - `stage` — stage identifier (must match `currentStage`)
 - `agent` — which BMAD agent to launch (e.g., `bmad-pm`)
 - `command` — the command/trigger to send to the agent (e.g., `CA`)
+- `model` — which model to use for the sub-agent (`opus`, `sonnet`, or `haiku`). If absent, defaults to `opus`. This maps directly to the Task tool's `model` parameter, enabling cost/quality optimization per stage
+- `effort` — effort level hint (`low`, `medium`, `high`, `max`). If absent, defaults to `high`. Currently used as metadata and behavioral guidance — included in the sub-agent prompt context so the model can calibrate its response depth accordingly
 - `requiredArtifacts` — array of file paths that must exist before starting
 - `producedArtifacts` — array of file paths that must exist after completion
 
@@ -353,12 +355,15 @@ Set the `subagent_type` parameter from the template frontmatter `agent` field:
 | `bmad-analyst`         | `bmad-analyst`           |
 | `bmad-tea`             | `bmad-tea`               |
 
+Set the `model` parameter on the Task tool call from the template frontmatter `model` field (e.g., `model: "sonnet"`). If the template has no `model` field, default to `opus`. This enables cost optimization — mechanical stages (sprint-planning, create-story, task-report) use `sonnet` for speed and lower cost, while creative and adversarial stages (prd, architecture, code-review, readiness) use `opus` for maximum quality.
+
 Pass the template content (Stage Instructions section) as the Task tool `prompt` parameter, along with:
 
 - The `task` description from state.yaml
 - Any `failure_context` from previous failed attempts on this stage
 - Mode instructions (see Section 4.2.1 for the exact replacement text for `{{mode_instructions}}`)
 - When `fileContext` is populated (from Section 1.3 File Reference Detection), include the referenced file contents as additional context alongside the task description. Format each entry as: `"Referenced file: {path}\n---\n{contents}\n---"` appended after `{{task_description}}`
+- The `effort` level from the template frontmatter, included as a behavioral hint in the prompt: `"Effort level for this stage: {effort}. Calibrate your response depth accordingly — 'medium' means efficient and focused, 'high' means thorough, 'max' means exhaustive analysis leaving no stone unturned."`
 
 ### 4.2 Act as Expert Human User
 

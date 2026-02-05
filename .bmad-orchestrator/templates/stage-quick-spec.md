@@ -2,6 +2,8 @@
 stage: quick-spec
 agent: bmad-quick-flow
 command: TS
+model: opus
+effort: high
 requiredArtifacts: []
 producedArtifacts:
   - _bmad-output/planning-artifacts/tech-spec.md

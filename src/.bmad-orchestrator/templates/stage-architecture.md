@@ -2,6 +2,8 @@
 stage: architecture
 agent: bmad-architect
 command: CA
+model: opus
+effort: high
 requiredArtifacts:
   - _bmad-output/planning-artifacts/prd.md
 producedArtifacts:
@@ -46,7 +48,7 @@ If this is a retry attempt (failure context is provided above), focus on address
 - If the architecture was not saved: Ensure the Architect agent completes the full workflow including the save step
 - If content was misaligned with the PRD: Provide more explicit guidance referencing specific PRD sections that need to be addressed
 - If readiness feedback is present in failure context: Address specific architectural gaps identified in the feedback
-- If the workflow stalled: be more directive in responses and guide the agent to completion
+- If the workflow stalled: Be more directive in responses and guide the agent to completion
 
 ## Verification
 

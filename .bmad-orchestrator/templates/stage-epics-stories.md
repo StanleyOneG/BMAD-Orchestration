@@ -2,6 +2,8 @@
 stage: epics-stories
 agent: bmad-pm
 command: CE
+model: opus
+effort: high
 requiredArtifacts:
   - _bmad-output/planning-artifacts/prd.md
   - _bmad-output/planning-artifacts/architecture.md

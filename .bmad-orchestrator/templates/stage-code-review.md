@@ -2,6 +2,8 @@
 stage: code-review
 agent: bmad-dev
 command: CR
+model: opus
+effort: max
 requiredArtifacts:
   - _bmad-output/implementation-artifacts/{{story_key}}.md
   - _bmad-output/planning-artifacts/architecture.md

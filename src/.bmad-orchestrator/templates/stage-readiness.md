@@ -2,6 +2,8 @@
 stage: readiness
 agent: bmad-pm
 command: IR
+model: opus
+effort: max
 requiredArtifacts:
   - _bmad-output/planning-artifacts/prd.md
   - _bmad-output/planning-artifacts/architecture.md
@@ -49,7 +51,7 @@ If this is a retry attempt (failure context is provided above), focus on address
 - If previous concerns were identified in failure context: Provide explicit remediation guidance targeting those specific concerns when the review asks about them
 - If upstream re-routing feedback is present: Explain which upstream artifact was revised and what changed, so the review can validate the corrections. The orchestrator re-routed to the upstream stage with targeted remediation instructions (per Section 6.5 of orchestrator agent). Focus the review on validating that the specific gaps identified in the previous readiness report have been addressed.
 - If this is a re-validation after upstream re-routing: The failure context will describe which upstream artifact was revised and what specific gaps were addressed. Pay particular attention to the areas flagged in the previous failure — confirm the upstream revision resolved the identified gaps.
-- If the workflow stalled: be more directive in responses and guide the agent to completion
+- If the workflow stalled: Be more directive in responses and guide the agent to completion
 
 ## Verification
 

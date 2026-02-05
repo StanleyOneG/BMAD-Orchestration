@@ -2,6 +2,8 @@
 stage: prd
 agent: bmad-pm
 command: CP
+model: opus
+effort: high
 requiredArtifacts: []
 producedArtifacts:
   - _bmad-output/planning-artifacts/prd.md

@@ -2,6 +2,8 @@
 stage: readiness
 agent: bmad-pm
 command: IR
+model: opus
+effort: max
 requiredArtifacts:
   - _bmad-output/planning-artifacts/prd.md
   - _bmad-output/planning-artifacts/architecture.md

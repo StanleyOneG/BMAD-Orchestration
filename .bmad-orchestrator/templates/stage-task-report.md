@@ -2,6 +2,8 @@
 stage: task-report
 agent: bmad-orchestrator
 command: generate-task-report
+model: opus
+effort: medium
 requiredArtifacts:
   - .bmad-orchestrator/state.yaml
   - .bmad-orchestrator/status-report.md

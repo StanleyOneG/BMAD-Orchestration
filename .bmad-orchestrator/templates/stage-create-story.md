@@ -2,6 +2,8 @@
 stage: create-story
 agent: bmad-sm
 command: CS
+model: opus
+effort: medium
 requiredArtifacts:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md

@@ -2,6 +2,8 @@
 stage: epics-stories
 agent: bmad-pm
 command: CE
+model: opus
+effort: high
 requiredArtifacts:
   - _bmad-output/planning-artifacts/prd.md
   - _bmad-output/planning-artifacts/architecture.md
@@ -47,7 +49,7 @@ If this is a retry attempt (failure context is provided above), focus on address
 - If the epics file was not saved: Ensure the PM agent completes the full workflow including the save step
 - If stories don't cover all PRD requirements: Guide the PM to review the functional requirements coverage map and ensure all FRs are addressed
 - If architectural constraints are missing from stories: Explicitly reference architecture decisions that need to be reflected in story acceptance criteria
-- If the workflow stalled: be more directive in responses and guide the agent to completion
+- If the workflow stalled: Be more directive in responses and guide the agent to completion
 
 ## Verification
 

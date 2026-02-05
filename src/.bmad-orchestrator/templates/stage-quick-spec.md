@@ -2,6 +2,8 @@
 stage: quick-spec
 agent: bmad-quick-flow
 command: TS
+model: opus
+effort: high
 requiredArtifacts: []
 producedArtifacts:
   - _bmad-output/planning-artifacts/tech-spec.md
@@ -43,7 +45,7 @@ If this is a retry attempt (failure context is provided above), focus on address
 
 - If tech spec not saved: ensure the workflow completes including the save step. Re-run the workflow if needed
 - If content misaligned: provide more explicit answers steering toward the task intent. Be more directive about scope and approach
-- If workflow stalls: be more directive in responses, answer decisively, and guide the agent to completion
+- If workflow stalls: be more directive in responses and guide the agent to completion
 
 ## Verification
 

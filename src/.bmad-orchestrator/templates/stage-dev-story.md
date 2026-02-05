@@ -2,6 +2,8 @@
 stage: dev-story
 agent: bmad-dev
 command: DS
+model: opus
+effort: high
 requiredArtifacts:
   - _bmad-output/implementation-artifacts/{{story_key}}.md
   - _bmad-output/planning-artifacts/architecture.md

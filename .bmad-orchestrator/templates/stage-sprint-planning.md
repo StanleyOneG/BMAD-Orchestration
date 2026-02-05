@@ -2,6 +2,8 @@
 stage: sprint-planning
 agent: bmad-sm
 command: SP
+model: opus
+effort: medium
 requiredArtifacts:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md

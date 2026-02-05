@@ -2,6 +2,8 @@
 stage: code-review
 agent: bmad-dev
 command: CR
+model: opus
+effort: max
 requiredArtifacts:
   - _bmad-output/implementation-artifacts/{{story_key}}.md
   - _bmad-output/planning-artifacts/architecture.md
@@ -47,7 +49,7 @@ Act as an **expert engineering lead** throughout the code review workflow:
 
 If this is a retry attempt (failure context is provided above), focus on addressing the specific issues from the previous attempt. Common recovery strategies:
 
-- If review stalls: be more directive in responses and guide the agent to completion
+- If review stalls: Be more directive in responses and guide the agent to completion
 - If review finds issues: This is NOT a recovery failure — it means dev-story needs to re-run with the review feedback. Capture the specific issues for `{{failure_context}}` injection
 - If review produces no output: Ensure the workflow completes with a clear verdict (PASS, CONCERNS, or FAIL)
 

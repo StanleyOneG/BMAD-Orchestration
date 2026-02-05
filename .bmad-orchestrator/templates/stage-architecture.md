@@ -2,6 +2,8 @@
 stage: architecture
 agent: bmad-architect
 command: CA
+model: opus
+effort: high
 requiredArtifacts:
   - _bmad-output/planning-artifacts/prd.md
 producedArtifacts:

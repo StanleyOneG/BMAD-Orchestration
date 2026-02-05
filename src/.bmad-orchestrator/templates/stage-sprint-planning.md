@@ -2,6 +2,8 @@
 stage: sprint-planning
 agent: bmad-sm
 command: SP
+model: opus
+effort: medium
 requiredArtifacts:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md
@@ -50,7 +52,7 @@ If this is a retry attempt (failure context is provided above), focus on address
 - If sprint-status not saved: Ensure the SM agent completes the full workflow including the save step. Verify the file is written to `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - If previous failure context is present: Address the specific issues identified in the failure context when interacting with the SM agent
 - If stale data: Regenerate the sprint status from the current epic files to ensure all epics and stories are represented
-- If the workflow stalled: be more directive in responses and guide the agent to completion
+- If the workflow stalled: Be more directive in responses and guide the agent to completion
 
 ## Verification
 
