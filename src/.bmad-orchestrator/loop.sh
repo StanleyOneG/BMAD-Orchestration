@@ -368,10 +368,16 @@ handle_exit_code() {
       # Task report generation (best-effort, does not block pipeline success)
       log "Generating task report..."
       local task_report_exit_code
+      local exit_code_file="${BMAD_DIR}/.exit-code"
       set +e
       launch_agent "generate-task-report"
       task_report_exit_code=$?
       set -e
+      # Recover intended exit code from .exit-code file (agent exits via SIGTERM=143)
+      if [[ "${task_report_exit_code}" -eq 143 ]] && [[ -f "${exit_code_file}" ]]; then
+        task_report_exit_code="$(cat "${exit_code_file}")"
+        rm -f "${exit_code_file}"
+      fi
       if [[ "${task_report_exit_code}" -ne 2 ]]; then
         log "WARNING: Task report generation returned exit code ${task_report_exit_code} (expected 2). Task report is best-effort; pipeline is still complete."
       else
@@ -393,38 +399,20 @@ handle_exit_code() {
     143)
       # Exit code 143 = SIGTERM (128+15). The orchestrator sends SIGTERM to the
       # parent claude process, which always produces exit code 143.
-      # Read state.yaml to determine the orchestrator's actual intended outcome.
-      log "Agent terminated via SIGTERM (exit code 143). Checking state for intended outcome..."
-      local intended_status
-      intended_status="$(read_state "status")"
-      case "${intended_status}" in
-        completed)
-          log "State shows completed. Treating as pipeline success."
-          handle_exit_code 2 "${elapsed_time}" "${completed_stages}"
-          return "$?"
-          ;;
-        failed)
-          log "State shows failed. Treating as pipeline failure."
-          handle_exit_code 1 "${elapsed_time}" "${completed_stages}"
-          return "$?"
-          ;;
-        paused)
-          log "State shows paused. Treating as checkpoint pause."
-          handle_exit_code 3 "${elapsed_time}" "${completed_stages}"
-          return "$?"
-          ;;
-        running)
-          # State still says running — orchestrator crashed before updating state
-          log "State still shows running. Agent crashed before state update. Stopping loop."
-          write_status_report "CRASHED" "${ITERATION:-0}" "${elapsed_time}" "${completed_stages}" "143"
-          return 143
-          ;;
-        *)
-          log "Unexpected state status '${intended_status}' after SIGTERM. Stopping loop."
-          write_status_report "CRASHED" "${ITERATION:-0}" "${elapsed_time}" "${completed_stages}" "143"
-          return 143
-          ;;
-      esac
+      # The orchestrator writes its intended exit code to .exit-code before killing.
+      local exit_code_file="${BMAD_DIR}/.exit-code"
+      if [[ -f "${exit_code_file}" ]]; then
+        local intended_code
+        intended_code="$(cat "${exit_code_file}")"
+        rm -f "${exit_code_file}"
+        log "Agent terminated via SIGTERM. Intended exit code: ${intended_code}"
+        handle_exit_code "${intended_code}" "${elapsed_time}" "${completed_stages}"
+        return "$?"
+      else
+        log "Agent terminated via SIGTERM but no .exit-code file found. Treating as crash."
+        write_status_report "CRASHED" "${ITERATION:-0}" "${elapsed_time}" "${completed_stages}" "143"
+        return 143
+      fi
       ;;
     *)
       log "Unexpected crash with exit code ${code}. Agent terminated unexpectedly. Stopping loop."

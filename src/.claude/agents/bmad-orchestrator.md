@@ -659,13 +659,15 @@ When a checkpoint gate is detected (completed stage is in `gates` array), genera
 
 ### Exit Implementation
 
-To propagate the exit code to the Ralph Loop, execute this as your **final action** via the Bash tool:
+To propagate the exit code to the Ralph Loop, execute this **two-step sequence** as your **final action** via the Bash tool:
 
 ```bash
-kill -TERM $PPID; exit <code>
+echo <code> > .bmad-orchestrator/.exit-code && kill -TERM $PPID
 ```
 
-**IMPORTANT:** A bare `exit <code>` only exits the Bash subshell — it does NOT terminate the `claude` CLI process. You MUST use `kill -TERM $PPID` to send SIGTERM to the parent `claude` process first, then `exit <code>` to set the exit code. The `$PPID` variable refers to the parent process (the `claude` CLI). Without `kill -TERM $PPID`, the claude process will remain running and stall waiting for the next prompt, blocking the Ralph Loop.
+**How it works:** The `kill -TERM $PPID` sends SIGTERM to the parent `claude` CLI process, which always results in exit code 143. The Ralph Loop reads `.bmad-orchestrator/.exit-code` to recover your intended exit code (0, 1, 2, or 3) and dispatches accordingly. Without writing the `.exit-code` file first, the loop cannot distinguish an intentional exit from a crash.
+
+**IMPORTANT:** A bare `exit <code>` only exits the Bash subshell — it does NOT terminate the `claude` CLI process. You MUST use `kill -TERM $PPID`. The `$PPID` variable refers to the parent process (the `claude` CLI). Without it, the claude process will remain running and stall waiting for the next prompt, blocking the Ralph Loop.
 
 This must be the very last Bash tool call you make. Do not perform any actions after this Bash call.
 

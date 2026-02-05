@@ -235,60 +235,63 @@ teardown() {
   [[ "$output" == *"crash"* ]] || [[ "$output" == *"Crash"* ]] || [[ "$output" == *"unexpected"* ]] || [[ "$output" == *"Unexpected"* ]]
 }
 
-@test "Task 2.8: exit code 143 with status=completed maps to pipeline success" {
+@test "Task 2.8: exit code 143 with .exit-code file reads intended code" {
   source_functions
   BMAD_DIR="${TEST_BMAD_DIR}"
   STATE_FILE="${BMAD_DIR}/state.yaml"
   STATUS_REPORT="${BMAD_DIR}/status-report.md"
   rm -f "${STATUS_REPORT}"
-  sed -i 's/^status: running/status: completed/' "${STATE_FILE}"
+  # Write intended exit code 0 (stage completed, continue)
+  echo "0" > "${BMAD_DIR}/.exit-code"
+  ITERATION=1
+  run handle_exit_code 143 "1m 0s" "quick-spec"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Intended exit code: 0"* ]]
+  # .exit-code file should be cleaned up
+  [ ! -f "${BMAD_DIR}/.exit-code" ]
+}
+
+@test "Task 2.9: exit code 143 with .exit-code=2 maps to pipeline complete" {
+  source_functions
+  BMAD_DIR="${TEST_BMAD_DIR}"
+  STATE_FILE="${BMAD_DIR}/state.yaml"
+  STATUS_REPORT="${BMAD_DIR}/status-report.md"
+  rm -f "${STATUS_REPORT}"
+  echo "2" > "${BMAD_DIR}/.exit-code"
   ITERATION=1
   # Override launch_agent to prevent actual agent launch during task report
   launch_agent() { return 2; }
   export -f launch_agent
-  run handle_exit_code 143 "1m 0s" "quick-spec, quick-dev"
+  run handle_exit_code 143 "5m 0s" "quick-spec, quick-dev"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"completed"* ]] || [[ "$output" == *"success"* ]]
+  [[ "$output" == *"Intended exit code: 2"* ]]
   unset -f launch_agent
 }
 
-@test "Task 2.9: exit code 143 with status=failed maps to pipeline failure" {
+@test "Task 2.10: exit code 143 with .exit-code=1 maps to pipeline failure" {
   source_functions
   BMAD_DIR="${TEST_BMAD_DIR}"
   STATE_FILE="${BMAD_DIR}/state.yaml"
   STATUS_REPORT="${BMAD_DIR}/status-report.md"
   rm -f "${STATUS_REPORT}"
-  sed -i 's/^status: running/status: failed/' "${STATE_FILE}"
-  ITERATION=1
-  run handle_exit_code 143 "1m 0s" "quick-spec"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"failed"* ]] || [[ "$output" == *"fail"* ]]
-}
-
-@test "Task 2.10: exit code 143 with status=paused maps to checkpoint pause" {
-  source_functions
-  BMAD_DIR="${TEST_BMAD_DIR}"
-  STATE_FILE="${BMAD_DIR}/state.yaml"
-  STATUS_REPORT="${BMAD_DIR}/status-report.md"
-  rm -f "${STATUS_REPORT}"
-  sed -i 's/^status: running/status: paused/' "${STATE_FILE}"
+  echo "1" > "${BMAD_DIR}/.exit-code"
   ITERATION=1
   run handle_exit_code 143 "1m 0s" "prd"
-  [ "$status" -eq 3 ]
-  [[ "$output" == *"paused"* ]] || [[ "$output" == *"checkpoint"* ]] || [[ "$output" == *"Checkpoint"* ]]
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Intended exit code: 1"* ]]
 }
 
-@test "Task 2.11: exit code 143 with status=running treats as crash" {
+@test "Task 2.11: exit code 143 without .exit-code file treats as crash" {
   source_functions
   BMAD_DIR="${TEST_BMAD_DIR}"
   STATE_FILE="${BMAD_DIR}/state.yaml"
   STATUS_REPORT="${BMAD_DIR}/status-report.md"
   rm -f "${STATUS_REPORT}"
-  # State is already running from setup
+  rm -f "${BMAD_DIR}/.exit-code"
   ITERATION=1
   run handle_exit_code 143 "30s" ""
   [ "$status" -eq 143 ]
-  [[ "$output" == *"crashed"* ]] || [[ "$output" == *"Crashed"* ]] || [[ "$output" == *"running"* ]]
+  [[ "$output" == *"no .exit-code file"* ]] || [[ "$output" == *"crash"* ]]
 }
 
 # ──────────────────────────────────────────────
