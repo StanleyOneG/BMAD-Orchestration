@@ -12,12 +12,13 @@ Extract from the input:
    - `--checkpoint` → sets `mode: checkpoint` (default is `autonomous`)
    - `--quick` → sets `route: quick` (skips auto-routing)
    - `--full` → sets `route: full` (skips auto-routing)
+   - `--review` → sets `route: review` (skips auto-routing)
    - `--resume` → modifies existing state with `runType: resume` instead of creating new
    - `--feedback "text"` → provides checkpoint feedback for revision (MUST be combined with `--resume`)
 
 If `--feedback` is used without `--resume`, fail immediately with: "Error: --feedback can only be used with --resume after a checkpoint pause."
 
-If no task description is provided and `--resume` is NOT set, fail with: "Error: Task description is required. Usage: /bmad-orchestrate \"Your task description\" [--checkpoint] [--quick] [--full] [--resume]"
+If no task description is provided and `--resume` is NOT set, fail with: "Error: Task description is required. Usage: /bmad-orchestrate \"Your task description\" [--checkpoint] [--quick] [--full] [--review] [--resume]"
 
 ## Step 1: Git Branch Safety Check
 
@@ -69,7 +70,7 @@ If neither primary nor secondary signal is found, check if `_bmad-output/plannin
 
 2. Determine field values from parsed flags:
    - `mode`: `checkpoint` if `--checkpoint` flag present, otherwise `autonomous`
-   - `route`: `quick` if `--quick`, `full` if `--full`, otherwise `null`
+   - `route`: `quick` if `--quick`, `full` if `--full`, `review` if `--review`, otherwise `null`
    - `runType`: always `fresh` for new runs
    - `branch`: the branch name from Step 1
 
@@ -77,7 +78,7 @@ If neither primary nor secondary signal is found, check if `_bmad-output/plannin
 
    ```yaml
    task: "<the task description>"
-   route: <null | quick | full>
+   route: <null | quick | full | review>
    mode: <autonomous | checkpoint>
    status: running
    runType: fresh
@@ -95,6 +96,7 @@ If neither primary nor secondary signal is found, check if `_bmad-output/plannin
      - epics-stories
      - readiness
      - code-review
+     - auto-code-review
 
    storyLoop: null
 
@@ -115,7 +117,7 @@ After successful state file creation, output:
 >
 > - **Task:** <task description>
 > - **Mode:** <autonomous|checkpoint>
-> - **Route:** <null|quick|full>
+> - **Route:** <null|quick|full|review>
 > - **Branch:** <branch name>
 >
 > Run `.bmad-orchestrator/loop.sh` to begin execution.

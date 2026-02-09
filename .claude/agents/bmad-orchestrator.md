@@ -85,7 +85,7 @@ Based on the state file, determine your action. **Check for task-report directiv
 
    **Routing Protocol:**
 
-   a. **Check for route override:** If `route` is already set to `quick` or `full` (not `null`), skip the routing analysis entirely — the user provided an override flag. Jump to step (c).
+   a. **Check for route override:** If `route` is already set to `quick`, `full`, or `review` (not `null`), skip the routing analysis entirely — the user provided an override flag. Jump to step (c).
 
    b. **Analyze task description (LLM routing decision):** If `route` is `null`, read the `task` field and determine the appropriate track using these guidelines:
 
@@ -94,9 +94,12 @@ Based on the state file, determine your action. **Check for task-report directiv
 
       Make a judgment call. When uncertain, prefer `full` — it is safer to over-plan than to under-plan.
 
+      - **Route to `review` is NEVER auto-selected.** The `review` route is only activated via the `--review` flag. The LLM routing decision should never auto-route to `review` — it is exclusively user-initiated.
+
    c. **Set first stage from route:**
       - If `route` is `full` → set `currentStage` to `prd`
       - If `route` is `quick` → set `currentStage` to `quick-spec`
+      - If `route` is `review` → set `currentStage` to `auto-code-review`
 
    d. **Perform atomic state update (Section 7.2):**
       - Set `route` to the determined value (`quick` or `full`)
@@ -271,11 +274,17 @@ A story can cycle between `dev-story` and `code-review` multiple times until cod
 
 `quick-spec` → `quick-dev`
 
+### Review Track (`route: review`)
+
+`auto-code-review`
+
+This is a single-stage pipeline for reviewing human-written merge request code. The `auto-code-review` stage launches a fresh `bmad-dev` agent to perform an adversarial code review of commits specified in the task description. After completion, the pipeline is done (exit code 2).
+
 ### Frozen Stage Identifiers
 
 These exact strings must be used everywhere — no aliases, no variations:
 
-`prd`, `architecture`, `epics-stories`, `readiness`, `sprint-planning`, `create-story`, `dev-story`, `code-review`, `quick-spec`, `quick-dev`
+`prd`, `architecture`, `epics-stories`, `readiness`, `sprint-planning`, `create-story`, `dev-story`, `code-review`, `quick-spec`, `quick-dev`, `auto-code-review`
 
 ### Next Stage Determination
 
@@ -452,7 +461,7 @@ Compare the stage output against the original `task` from the state file. Ensure
 
 ### 5.3 Quality Gate (Validation Stages)
 
-For validation stages (`readiness`, `code-review`), check the result:
+For validation stages (`readiness`, `code-review`, `auto-code-review`), check the result:
 - **PASS** — stage succeeded, proceed to Section 5.4
 - **CONCERNS** — stage passed with warnings, proceed to Section 5.4 but include the concern details in the status report entry (Section 7.3) with outcome `PASS (CONCERNS)` and the concern summary in the Details field
 - **FAIL** — stage failed, trigger failure handling (Section 5.5)

@@ -46,7 +46,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 These exact strings must be used everywhere -- in state files, template filenames, orchestrator logic. No aliases, no variations:
 
-`prd`, `architecture`, `epics-stories`, `readiness`, `sprint-planning`, `create-story`, `dev-story`, `code-review`, `quick-spec`, `quick-dev`
+`prd`, `architecture`, `epics-stories`, `readiness`, `sprint-planning`, `create-story`, `dev-story`, `code-review`, `quick-spec`, `quick-dev`, `auto-code-review`
 
 ### File Naming Rules
 

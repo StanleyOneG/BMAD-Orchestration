@@ -3150,3 +3150,64 @@ LOOP_SCRIPT=".bmad-orchestrator/loop.sh"
 @test "TaskReport 5.3-36: agent describes updating state to currentStage task-report" {
   grep -qi 'currentStage.*task-report\|task-report.*currentStage' "${AGENT_FILE}"
 }
+
+# ──────────────────────────────────────────────
+# Auto Code Review Route Tests
+# ──────────────────────────────────────────────
+
+REVIEW_TEMPLATE=".bmad-orchestrator/templates/stage-auto-code-review.md"
+
+@test "Review route: orchestrator agent recognizes route: review" {
+  grep -q 'review' "${AGENT_FILE}"
+  grep -qi 'route.*review\|review.*route' "${AGENT_FILE}"
+}
+
+@test "Review route: auto-code-review stage sequence defined" {
+  grep -q 'auto-code-review' "${AGENT_FILE}"
+}
+
+@test "Review route: auto-code-review in frozen identifiers list" {
+  grep -q 'quick-dev.*auto-code-review' "${AGENT_FILE}"
+}
+
+@test "Review route: route review maps to auto-code-review" {
+  grep -qi 'review.*auto-code-review' "${AGENT_FILE}"
+}
+
+@test "Template: stage-auto-code-review.md exists" {
+  [ -f "${REVIEW_TEMPLATE}" ]
+}
+
+@test "Template: auto-code-review has valid frontmatter with stage: auto-code-review" {
+  head -20 "${REVIEW_TEMPLATE}" | grep -q 'stage: auto-code-review'
+}
+
+@test "Template: auto-code-review frontmatter contains agent: bmad-dev" {
+  head -20 "${REVIEW_TEMPLATE}" | grep -q 'agent: bmad-dev'
+}
+
+@test "Template: auto-code-review frontmatter contains command: CR" {
+  head -20 "${REVIEW_TEMPLATE}" | grep -q 'command: CR'
+}
+
+@test "Template: auto-code-review contains Context Injection section" {
+  grep -q '## Context Injection' "${REVIEW_TEMPLATE}"
+}
+
+@test "Template: auto-code-review contains Stage Instructions section" {
+  grep -q '## Stage Instructions' "${REVIEW_TEMPLATE}"
+}
+
+@test "Template: auto-code-review contains Verification section" {
+  grep -q '## Verification' "${REVIEW_TEMPLATE}"
+}
+
+@test "Template: auto-code-review contains producedArtifacts with auto-code-review-report.md" {
+  grep -q 'auto-code-review-report\.md' "${REVIEW_TEMPLATE}"
+}
+
+@test "Template: auto-code-review contains PASS/CONCERNS/FAIL quality gate" {
+  grep -q 'PASS' "${REVIEW_TEMPLATE}"
+  grep -q 'CONCERNS' "${REVIEW_TEMPLATE}"
+  grep -q 'FAIL' "${REVIEW_TEMPLATE}"
+}
