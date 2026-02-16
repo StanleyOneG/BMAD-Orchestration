@@ -68,9 +68,9 @@ AGENT_FILE=".claude/agents/bmad-orchestrator.md"
   grep -qi 'state.*update\|update.*state\|write.*state' "${AGENT_FILE}"
 }
 
-@test "Task 2.2: agent uses atomic write — state.yaml.tmp then mv" {
+@test "Task 2.2: agent uses atomic write — state.yaml.tmp then mv -f" {
   grep -q 'state\.yaml\.tmp' "${AGENT_FILE}"
-  grep -q 'mv.*state\.yaml' "${AGENT_FILE}"
+  grep -q 'mv -f.*state\.yaml' "${AGENT_FILE}"
 }
 
 @test "Task 2.3: agent appends to completedStages" {
@@ -3210,4 +3210,25 @@ REVIEW_TEMPLATE=".bmad-orchestrator/templates/stage-auto-code-review.md"
   grep -q 'PASS' "${REVIEW_TEMPLATE}"
   grep -q 'CONCERNS' "${REVIEW_TEMPLATE}"
   grep -q 'FAIL' "${REVIEW_TEMPLATE}"
+}
+
+@test "Template: auto-code-review template exists in src/ for deployment" {
+  [ -f "src/.bmad-orchestrator/templates/stage-auto-code-review.md" ]
+}
+
+@test "Template: auto-code-review contains report persistence requirement" {
+  grep -qi 'report.*FILE.*is the ONLY deliverable\|ONLY deliverable' "${REVIEW_TEMPLATE}"
+}
+
+@test "Template: auto-code-review contains report completeness recovery step" {
+  grep -qi 'Report Completeness Recovery' "${REVIEW_TEMPLATE}"
+}
+
+@test "Template: auto-code-review instructs sub-agent to save ALL findings to file" {
+  grep -qi 'MUST save.*complete review report\|ALL.*findings.*severity.*description' "${REVIEW_TEMPLATE}"
+}
+
+@test "Review route: orchestrator has template pre-validation before state write" {
+  grep -qi 'template.*pre-validation\|Template pre-validation' "${AGENT_FILE}"
+  grep -qi 'MUST NOT SKIP\|FATAL.*Template not found' "${AGENT_FILE}"
 }

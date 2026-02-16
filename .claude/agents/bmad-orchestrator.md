@@ -101,6 +101,8 @@ Based on the state file, determine your action. **Check for task-report directiv
       - If `route` is `quick` → set `currentStage` to `quick-spec`
       - If `route` is `review` → set `currentStage` to `auto-code-review`
 
+   c2. **Template pre-validation (MUST NOT SKIP):** Before writing state, verify that the template file `.bmad-orchestrator/templates/stage-{currentStage}.md` exists on disk. If it does NOT exist, output a clear error: `"FATAL: Template not found: stage-{currentStage}.md — cannot start pipeline. Ensure the template file exists in .bmad-orchestrator/templates/"` and exit with code 1. Do NOT write the state update. Do NOT attempt to proceed without a template or improvise using a different template.
+
    d. **Perform atomic state update (Section 7.2):**
       - Set `route` to the determined value (`quick` or `full`)
       - Set `currentStage` to the first stage of the chosen track
@@ -579,7 +581,7 @@ Build the complete updated state YAML with:
 **NEVER write directly to `state.yaml`.** Always:
 
 1. Write the complete state to `.bmad-orchestrator/state.yaml.tmp`
-2. Rename: `mv .bmad-orchestrator/state.yaml.tmp .bmad-orchestrator/state.yaml`
+2. Rename: `mv -f .bmad-orchestrator/state.yaml.tmp .bmad-orchestrator/state.yaml`
 
 This ensures the state file is never partially written. Either the complete new state exists, or the old state remains unchanged.
 

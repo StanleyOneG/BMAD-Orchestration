@@ -37,7 +37,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 ### State File Rules
 
 - **Location:** `.bmad-orchestrator/state.yaml`
-- **NEVER write directly to `state.yaml`** -- always write to `state.yaml.tmp` then `mv state.yaml.tmp state.yaml` (atomic rename)
+- **NEVER write directly to `state.yaml`** -- always write to `state.yaml.tmp` then `mv -f state.yaml.tmp state.yaml` (atomic rename)
 - All field names use `camelCase`: `currentStage`, `storyLoop`, `runType`, `completedStages`
 - Error messages in the `failures` array are single-line summaries only
 - The state file is the single source of truth -- if it says a stage completed, it completed; if it doesn't, it didn't
