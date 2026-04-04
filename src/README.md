@@ -65,9 +65,11 @@ For each platform target, the script performs these steps in order:
 
 3. **Clean up** -- Removes the source agent skill directories from the skills folder. Only directories that were successfully processed as agents are removed. All non-agent skills (workflows, tools, etc.) are left untouched.
 
-4. **Suggest** -- Prints a suggested snippet for `CLAUDE.md` or `PI.md` listing the generated agents with their display names and capabilities.
+4. **Disable model invocation (Pi only)** -- For `--target pi` (or `both`), injects `disable-model-invocation: true` into the YAML frontmatter of every remaining skill's `SKILL.md`. This prevents Pi from loading the full skill body and downstream workflow prompts into the system prompt on each run, keeping context lean. Skills that already have the flag are skipped.
 
-In `--dry-run` mode, steps 2 and 3 are skipped -- nothing is written or deleted.
+5. **Suggest** -- Prints a suggested snippet for `CLAUDE.md` or `PI.md` listing the generated agents with their display names and capabilities.
+
+In `--dry-run` mode, steps 2, 3, and 4 are skipped -- nothing is written or deleted.
 
 ## Platform Differences
 
@@ -102,6 +104,18 @@ Key differences:
 - Pi uses `find` instead of `Glob`, and adds `ls`
 - Pi does not support `WebSearch` or `WebFetch`
 - Tool names are lowercase in Pi, PascalCase in Claude Code
+
+Additionally, for Pi targets, non-agent skill `SKILL.md` files are patched to include `disable-model-invocation: true` in the frontmatter:
+
+```yaml
+---
+name: bmad-create-prd
+description: 'Create a PRD from scratch.'
+disable-model-invocation: true
+---
+```
+
+This tells Pi to register the skill by name and description without loading the full body content into the system prompt, keeping token usage under control.
 
 ## Generated Agents
 

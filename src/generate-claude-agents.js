@@ -315,6 +315,61 @@ function escapeYamlString(s) {
 }
 
 // ---------------------------------------------------------------------------
+// Inject disable-model-invocation into SKILL.md frontmatter for Pi target
+// ---------------------------------------------------------------------------
+function injectDisableModelInvocation(skillsDir, dryRun) {
+  if (!fs.existsSync(skillsDir)) return 0;
+
+  const entries = fs.readdirSync(skillsDir, { withFileTypes: true });
+  let count = 0;
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+
+    const skillMdPath = path.join(skillsDir, entry.name, 'SKILL.md');
+    if (!fs.existsSync(skillMdPath)) continue;
+
+    const content = fs.readFileSync(skillMdPath, 'utf8');
+
+    // Skip if already has the flag
+    if (content.includes('disable-model-invocation:')) {
+      console.log(`  Skipped (already has flag): ${entry.name}/SKILL.md`);
+      continue;
+    }
+
+    // Must have frontmatter to inject into
+    if (!content.startsWith('---')) {
+      console.warn(`  Warning: ${entry.name}/SKILL.md has no frontmatter -- skipping injection`);
+      continue;
+    }
+
+    const closingDash = content.indexOf('---', 3);
+    if (closingDash === -1) {
+      console.warn(`  Warning: ${entry.name}/SKILL.md has malformed frontmatter -- skipping injection`);
+      continue;
+    }
+
+    // Insert disable-model-invocation: true before the closing ---
+    const beforeClose = content.slice(0, closingDash);
+    const afterClose = content.slice(closingDash);
+    const injection = beforeClose.endsWith('\n')
+      ? 'disable-model-invocation: true\n'
+      : '\ndisable-model-invocation: true\n';
+    const newContent = beforeClose + injection + afterClose;
+
+    if (dryRun) {
+      console.log(`  [dry-run] Would inject disable-model-invocation into: ${entry.name}/SKILL.md`);
+    } else {
+      fs.writeFileSync(skillMdPath, newContent, 'utf8');
+      console.log(`  Injected disable-model-invocation: ${entry.name}/SKILL.md`);
+    }
+    count++;
+  }
+
+  return count;
+}
+
+// ---------------------------------------------------------------------------
 // Remove agent skill source directories after native agents are generated
 // ---------------------------------------------------------------------------
 function cleanupAgentSkills(agents, skillsDir) {
@@ -432,6 +487,18 @@ function processTarget(platform, projectRoot, explicitSkillsDir, dryRun) {
     }
   }
 
+  // For Pi target: inject disable-model-invocation into all remaining skill SKILL.md files
+  // so Pi won't load full skill bodies and workflow prompts into the system prompt
+  if (platform === 'pi' && written > 0) {
+    console.log('\n  Injecting disable-model-invocation into remaining skill frontmatters...');
+    const injected = injectDisableModelInvocation(skillsDir, dryRun);
+    if (injected > 0) {
+      console.log(`  ${dryRun ? 'Would inject' : 'Injected'} disable-model-invocation into ${injected} skill(s).`);
+    } else {
+      console.log('  No skills needed injection (all already flagged or no remaining skills).');
+    }
+  }
+
   return { agents, written, skipped: false, error: false };
 }
 
@@ -507,6 +574,7 @@ if (typeof module !== 'undefined' && module.exports) {
     getShortName,
     discoverAgentSkills,
     cleanupAgentSkills,
+    injectDisableModelInvocation,
     generateAgentFile,
     generateSnippet,
     escapeYamlString,

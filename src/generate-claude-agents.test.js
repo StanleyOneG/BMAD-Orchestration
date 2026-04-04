@@ -12,6 +12,7 @@ const {
   getShortName,
   discoverAgentSkills,
   cleanupAgentSkills,
+  injectDisableModelInvocation,
   generateAgentFile,
   generateSnippet,
   escapeYamlString,
@@ -525,6 +526,92 @@ describe('cleanupAgentSkills', () => {
     const fakeAgents = [{ dirName: 'bmad-agent-pm' }, { dirName: 'bmad-tea' }];
     const removed = cleanupAgentSkills(fakeAgents, skillsDir);
     assert.deepEqual(removed, []);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// injectDisableModelInvocation
+// ---------------------------------------------------------------------------
+describe('injectDisableModelInvocation', () => {
+  const suiteId = 'inject-dmi';
+
+  after(() => {
+    cleanupFixtures(suiteId);
+  });
+
+  it('injects flag into SKILL.md frontmatter', () => {
+    const fixtureRoot = path.join(FIXTURES_BASE, suiteId);
+    const skillsDir = path.join(fixtureRoot, '.pi', 'skills');
+
+    // Create a skill with standard frontmatter
+    const skillDir = path.join(skillsDir, 'bmad-create-prd');
+    fs.mkdirSync(skillDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(skillDir, 'SKILL.md'),
+      '---\nname: bmad-create-prd\ndescription: \'Create a PRD.\'\n---\n\n# Body content\n',
+    );
+
+    const count = injectDisableModelInvocation(skillsDir, false);
+    assert.equal(count, 1);
+
+    const content = fs.readFileSync(path.join(skillDir, 'SKILL.md'), 'utf8');
+    assert.ok(content.includes('disable-model-invocation: true'));
+    // Flag should be inside frontmatter (before closing ---)
+    const fmEnd = content.indexOf('---', 3);
+    const flagPos = content.indexOf('disable-model-invocation: true');
+    assert.ok(flagPos < fmEnd, 'Flag should be inside frontmatter');
+    // Body should be preserved
+    assert.ok(content.includes('# Body content'));
+  });
+
+  it('skips files that already have the flag', () => {
+    const fixtureRoot = path.join(FIXTURES_BASE, suiteId);
+    const skillsDir = path.join(fixtureRoot, '.pi', 'skills');
+
+    // Overwrite with content that already has the flag
+    const skillDir = path.join(skillsDir, 'bmad-create-prd');
+    fs.writeFileSync(
+      path.join(skillDir, 'SKILL.md'),
+      '---\nname: bmad-create-prd\ndescription: \'Create a PRD.\'\ndisable-model-invocation: true\n---\n\n# Body\n',
+    );
+
+    const count = injectDisableModelInvocation(skillsDir, false);
+    assert.equal(count, 0);
+  });
+
+  it('skips files without frontmatter', () => {
+    const fixtureRoot = path.join(FIXTURES_BASE, suiteId);
+    const skillsDir = path.join(fixtureRoot, '.pi', 'skills');
+
+    const noFmDir = path.join(skillsDir, 'bmad-no-fm');
+    fs.mkdirSync(noFmDir, { recursive: true });
+    fs.writeFileSync(path.join(noFmDir, 'SKILL.md'), '# Just a doc\nNo frontmatter here.\n');
+
+    const count = injectDisableModelInvocation(skillsDir, false);
+    assert.equal(count, 0);
+  });
+
+  it('dry-run does not modify files', () => {
+    const fixtureRoot = path.join(FIXTURES_BASE, suiteId);
+    const skillsDir = path.join(fixtureRoot, '.pi', 'skills');
+
+    // Create a fresh skill without the flag
+    const dryDir = path.join(skillsDir, 'bmad-dry-test');
+    fs.mkdirSync(dryDir, { recursive: true });
+    const original = '---\nname: bmad-dry-test\ndescription: \'Dry test.\'\n---\n\n# Body\n';
+    fs.writeFileSync(path.join(dryDir, 'SKILL.md'), original);
+
+    const count = injectDisableModelInvocation(skillsDir, true);
+    assert.ok(count >= 1);
+
+    // File should be unchanged
+    const content = fs.readFileSync(path.join(dryDir, 'SKILL.md'), 'utf8');
+    assert.equal(content, original);
+  });
+
+  it('returns 0 for non-existent directory', () => {
+    const count = injectDisableModelInvocation('/nonexistent/path', false);
+    assert.equal(count, 0);
   });
 });
 
