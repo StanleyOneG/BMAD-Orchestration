@@ -5,6 +5,7 @@ bun.lock
 deno.lock
 pnpm-workspace.yaml
 package-lock.json
+.venv
 
 test-output/*
 coverage/
