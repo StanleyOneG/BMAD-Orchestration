@@ -254,15 +254,23 @@ const AGENT_INFO = {
 // Pi agent config: provider/model/thinking per agent short name
 // ----------------------------------------------------------------------------
 const PI_AGENT_CONFIG_MAP = {
-    analyst: { provider: "anthropic", model: "claude-opus-4-6", thinking: "high" },
+    analyst: {
+        provider: "claude-agent-sdk",
+        model: "claude-opus-4-6",
+        thinking: "high",
+    },
     "tech-writer": {
         provider: "openai-codex",
         model: "gpt-5.4",
         thinking: "high",
     },
-    pm: { provider: "anthropic", model: "claude-opus-4-6", thinking: "high" },
+    pm: {
+        provider: "claude-agent-sdk",
+        model: "claude-opus-4-6",
+        thinking: "high",
+    },
     "ux-designer": {
-        provider: "anthropic",
+        provider: "claude-agent-sdk",
         model: "claude-opus-4-6",
         thinking: "high",
     },
@@ -274,11 +282,15 @@ const PI_AGENT_CONFIG_MAP = {
     dev: { provider: "minimax", model: "MiniMax-M2.7", thinking: "high" },
     qa: { provider: "openai-codex", model: "gpt-5.4", thinking: "high" },
     "quick-flow-solo-dev": {
-        provider: "anthropic",
+        provider: "claude-agent-sdk",
         model: "claude-opus-4-6",
         thinking: "high",
     },
-    sm: { provider: "anthropic", model: "claude-opus-4-6", thinking: "xhigh" },
+    sm: {
+        provider: "claude-agent-sdk",
+        model: "claude-opus-4-6",
+        thinking: "xhigh",
+    },
     reviewer: { provider: "openai-codex", model: "gpt-5.4", thinking: "xhigh" },
 };
 
